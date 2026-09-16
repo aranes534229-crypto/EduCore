@@ -13,9 +13,9 @@ obj/
 *.mdf
 *.ldf
 
-# Environment-specific settings
+# Environment-specific settings (keep Production committed; ignore local-only variants)
 appsettings.Development.json
-appsettings.*.json
+appsettings.Local.json
 web.config
 ~/.Microsoft/dotnet/
 
@@ -28,6 +28,12 @@ packages/
 # Logs
 *.log
 logs/
+
+# NuGet / libman packages
+wwwroot/lib/
+
+# Render publish output
+out/
 
 # OS
 .DS_Store
