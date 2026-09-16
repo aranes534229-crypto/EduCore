@@ -1,0 +1,59 @@
+@model List<EduCore.ViewModels.AttendanceRowVM>
+@{
+    ViewData["Title"] = "Attendance";
+    var sectionId = (int)ViewBag.SectionId;
+    var day = (DateTime)ViewBag.Date;
+    var names = (Dictionary<int, string>)ViewBag.StudentNames;
+    var statuses = new[] { "Present", "Absent", "Late", "Excused" };
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Attendance</h1>
+    <a asp-action="Index" class="btn btn-sm btn-link">Back to Gradebook</a>
+</div>
+
+<form method="get" asp-action="Attendance" asp-route-sectionId="@sectionId" class="mb-3 row g-2 align-items-center">
+    <div class="col-auto"><label class="col-form-label">Date</label></div>
+    <div class="col-auto">
+        <input type="date" name="date" value="@day.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-auto"><button class="btn btn-outline-secondary">Load</button></div>
+</form>
+
+@if (TempData["Saved"] is not null)
+{
+    <div class="alert alert-success py-2">@TempData["Saved"]</div>
+}
+
+<form asp-action="Attendance" asp-route-sectionId="@sectionId" asp-route-date="@day.ToString("yyyy-MM-dd")" method="post">
+    <input type="hidden" name="date" value="@day.ToString("yyyy-MM-dd")" />
+    <table class="table align-middle">
+        <thead><tr><th>Student</th><th style="width:16rem">Status</th></tr></thead>
+        <tbody>
+        @for (int i = 0; i < Model.Count; i++)
+        {
+            <tr>
+                <td>
+                    @names[Model[i].StudentId]
+                    <input type="hidden" asp-for="@Model[i].StudentId" />
+                </td>
+                <td>
+                    <select asp-for="@Model[i].Status" class="form-select">
+                        @foreach (var st in statuses)
+                        {
+                            <option value="@st" selected="@(Model[i].Status == st)">@st</option>
+                        }
+                    </select>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Any())
+    {
+        <button type="submit" class="btn btn-primary">Save attendance</button>
+    }
+    else
+    {
+        <p class="text-body-secondary">No students in this section yet.</p>
+    }
+</form>

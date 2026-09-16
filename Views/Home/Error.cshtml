@@ -1,0 +1,25 @@
+@model EduCore.Models.ErrorViewModel
+
+@{
+    ViewData["Title"] = "Error";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 text-center">
+            <h1 class="display-4">Something went wrong</h1>
+            <p class="lead text-body-secondary mb-4">We couldn't load the page you requested.</p>
+
+            @if (Model.ShowRequestId)
+            {
+                <p class="text-body-secondary small">
+                    Trace ID: <code>@Model.RequestId</code>
+                </p>
+            }
+
+            <p class="text-body-secondary small">
+                Reload the page, or return to the <a asp-controller="Home" asp-action="Index">dashboard</a>.
+            </p>
+        </div>
+    </div>
+</div>

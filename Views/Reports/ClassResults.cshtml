@@ -1,0 +1,54 @@
+@using EduCore.Controllers
+@using EduCore.Models.Entities
+@{
+    ViewData["Title"] = "Class results report";
+    var options = (List<SectionSubject>)ViewBag.Options;
+}
+<h2>Class results report</h2>
+
+@if (options.Count == 0)
+{
+    <p class="text-body-secondary">No classes to report on.</p>
+}
+else
+{
+    <form method="get" class="row g-2 align-items-center mb-3 col-md-6 col-12">
+        <div class="col-auto">
+            <label class="form-label mb-0">Class / subject</label>
+            <select name="sectionSubjectId" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var ss in options)
+                {
+                    <option value="@ss.Id" selected="@(ss.Id == (int)ViewBag.SelectedId)">
+                        @ss.Section.Name — @ss.Subject.FullName (@ss.Faculty.FullName)
+                    </option>
+                }
+            </select>
+        </div>
+    </form>
+
+    @if (ViewBag.Query is SectionSubject q)
+    {
+        var rows = (List<ReportsController.StudentResult>)ViewBag.Rows;
+        <h5>@q.Section.Name — @q.Subject.FullName</h5>
+        <p class="text-body-secondary">
+            Teacher: @q.Faculty.FullName ·
+            Section average: @(ViewBag.Average is decimal avg ? avg.ToString("N2") : "—")
+            (@ViewBag.HavingScores of @rows.Count graded)
+        </p>
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr><th>Student</th><th>Score</th><th>Remarks</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr>
+                        <td>@r.StudentName</td>
+                        <td>@(r.Score.HasValue ? r.Score.Value.ToString() : "—")</td>
+                        <td>@r.Remarks</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

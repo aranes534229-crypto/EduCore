@@ -1,0 +1,177 @@
+/* EduCore admin surface — reuses the login page's --ec-* token palette so light/dark
+   stay in lockstep. Loaded only by _AdminLayout.cshtml. */
+:root {
+  --ec-paper: #F7F5F1;
+  --ec-paper-dark: #121110;
+  --ec-card: #FFFFFF;
+  --ec-card-dark: #1B1A19;
+  --ec-ink: #2B2A29;
+  --ec-ink-dim: #6B6A69;
+  --ec-ink-dark: #EAE8E6;
+  --ec-ink-dim-dark: #B8B6B5;
+  --ec-accent: #3D5B8C;
+  --ec-accent-hover: #324b70;
+  --ec-role-admin: #7B5EA6;
+  --ec-role-faculty: #4A6FA6;
+  --ec-role-finance: #D97754;
+  --ec-role-registrar: #5B9C68;
+  --ec-line: #E2DED9;
+  --ec-line-dark: #3A3836;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ec-paper: #121110;
+    --ec-card: #1B1A19;
+    --ec-ink: #EAE8E6;
+    --ec-ink-dim: #B8B6B5;
+    --ec-line: #3A3836;
+  }
+}
+[data-theme="light"] { --ec-paper:#F7F5F1; --ec-card:#FFFFFF; --ec-ink:#2B2A29; --ec-ink-dim:#6B6A69; --ec-line:#E2DED9; }
+[data-theme="dark"]   { --ec-paper:#121110; --ec-card:#1B1A19; --ec-ink:#EAE8E6; --ec-ink-dim:#B8B6B5; --ec-line:#3A3836; }
+
+* { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+.font-display { font-family: "Instrument Serif", Georgia, serif; }
+
+/* --- Layout --- */
+body { margin: 0; background: var(--ec-paper); color: var(--ec-ink); }
+
+.ec-sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 240px; min-width: 240px;
+  background: var(--ec-card); border-right: 1px solid var(--ec-line);
+  display: flex; flex-direction: column; overflow-y: auto;
+  box-shadow: 1px 0 3px rgba(0,0,0,.04);
+}
+.ec-content { margin-left: 240px; padding: 2rem; min-height: 100dvh; }
+
+/* --- Sidebar: top --- */
+.ec-brand {
+  display: flex; align-items: center; gap: .6rem;
+  padding: 1.25rem 1.25rem .75rem; border-bottom: 1px solid var(--ec-line);
+}
+.ec-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--ec-accent); color: #fff;
+  display: grid; place-items: center; font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.1rem;
+}
+.ec-brand-text { font-family: "Instrument Serif", Georgia, serif; font-size: 1.25rem; font-weight: 400; }
+.ec-brand-text .ec-dot { color: var(--ec-accent); }
+
+.ec-search-wrap { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ec-line); }
+.ec-search {
+  width: 100%; padding: .45rem .75rem; border: 1px solid var(--ec-line);
+  border-radius: 10px; background: var(--ec-paper); color: var(--ec-ink); font-size: .85rem;
+}
+.ec-search::placeholder { color: var(--ec-ink-dim); }
+.ec-search:focus { outline: 2px solid var(--ec-accent); outline-offset: 2px; border-color: var(--ec-accent); }
+
+/* --- Sidebar: nav --- */
+.ec-nav { flex: 1; padding: .5rem 0; }
+.ec-nav .ec-section { padding: .5rem 1.25rem .25rem; font-size: .7rem; font-weight: 700;
+  color: var(--ec-ink-dim); letter-spacing: .03em; text-transform: uppercase; }
+.ec-nav a.nav-link {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .55rem 1.25rem; margin: 0 .75rem .15rem; border-radius: 10px;
+  color: var(--ec-ink); font-size: .875rem; text-decoration: none;
+  transition: background .12s, color .12s;
+}
+.ec-nav a.nav-link:hover { background: var(--ec-line); color: var(--ec-ink); }
+.ec-nav a.nav-link.active {
+  background: var(--ec-accent); color: #fff; font-weight: 600;
+}
+.ec-nav a.nav-link.active:hover { background: var(--ec-accent-hover); }
+.ec-nav svg.icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+/* --- Sidebar: bottom --- */
+.ec-user-menu-wrap { position: relative; }
+.ec-user-menu-expand {
+  max-height: 0; overflow: hidden;
+  transition: max-height .2s ease;
+  position: absolute; bottom: 100%; left: 0; right: 0;
+  z-index: 10;
+}
+.ec-user-menu-expand.show { max-height: 200px; }
+.ec-user-menu-item {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem 1.25rem; margin: 0; border-radius: 10px;
+  color: #4b5569; text-decoration: none; font-size: .8rem;
+  line-height: 1.6rem; transition: background .12s, color .12s;
+  border: none; background: transparent; cursor: pointer; text-align: left;
+  width: 100%; box-sizing: border-box;
+}
+.ec-user-menu-expand form {
+  width: 100%; margin: 0; padding: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .ec-user-menu-item { color: #9ca3af; }
+}
+[data-theme="light"] .ec-user-menu-item { color: #4b5569; }
+[data-theme="dark"] .ec-user-menu-item { color: #9ca3af; }
+.ec-user-menu-item:hover {
+  background: var(--ec-line); color: var(--ec-ink);
+}
+.ec-user-menu-item.ec-signout:hover {
+  background: rgba(248, 113, 113, .12);
+  color: #f87171;
+}
+.ec-menu-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+.ec-user {
+  padding: .75rem 1.25rem; border-top: 1px solid var(--ec-line);
+  display: flex; align-items: center; gap: .7rem;
+}
+.ec-user-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--ec-accent); color: #fff; font-size: 1.1rem;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.ec-user-info { flex: 1; min-width: 0; }
+.ec-user-name {
+  font-size: .85rem; font-weight: 700; color: var(--ec-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ec-user-email { font-size: .7rem; color: var(--ec-ink-dim); }
+.ec-user-toggle {
+  background: transparent; border: none; padding: .3rem;
+  display: grid; place-items: center; flex-shrink: 0;
+  color: var(--ec-ink-dim); cursor: pointer;
+}
+.ec-chevron { width: 1rem; height: 1rem; transition: transform .2s; }
+.ec-chevron.rotated { transform: rotate(180deg); }
+
+/* --- Card surface --- */
+.ec-card {
+  background: var(--ec-card); border: 1px solid var(--ec-line);
+  border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+/* --- Tables --- */
+.ec-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ec-table thead th {
+  background: transparent; border: none; border-bottom: 1px solid var(--ec-line);
+  color: var(--ec-ink-dim); font-size: .72rem; font-weight: 700; letter-spacing: .03em;
+  text-transform: uppercase; padding: .7rem 1rem; text-align: left;
+}
+.ec-table tbody td { border: 0; padding: .7rem 1rem; border-bottom: 1px solid var(--ec-line); }
+.ec-table tbody tr:hover { background: var(--ec-line); }
+.ec-table tbody tr:last-child td { border-bottom: none; }
+.ec-table th:last-child, .ec-table td:last-child { text-align: right; }
+.ec-table-sm thead th { padding: .4rem .75rem; font-size: .66rem; }
+.ec-table-sm tbody td { padding: .45rem .75rem; font-size: .825rem; }
+
+/* --- Buttons --- */
+.btn-primary { background: var(--ec-accent); border-color: var(--ec-accent); }
+.btn-primary:hover { background: var(--ec-accent-hover); border-color: var(--ec-accent-hover); }
+
+/* --- Form controls --- */
+.form-control:focus { border-color: var(--ec-accent); box-shadow: 0 0 0 .18rem rgba(61,91,140,.15); }
+.form-label { font-size: .8rem; font-weight: 600; color: var(--ec-ink-dim); letter-spacing: .03em; }
+
+@media (max-width: 768px) {
+  .ec-content { margin-left: 0; }
+  .ec-sidebar { position: fixed; inset: 0; width: 280px; max-width: 85vw; transform: translateX(-100%); transition: transform .2s ease; z-index: 1050; }
+  .ec-sidebar.show { transform: translateX(0); }
+}
+@media (min-width: 769px) { .ec-menu-btn { display: none; } }

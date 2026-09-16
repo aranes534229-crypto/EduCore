@@ -1,0 +1,54 @@
+@model IEnumerable<EduCore.Models.Entities.Faculty>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Faculty";
+    ViewData["Active"] = "Faculty";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Faculty</h1>
+    <a asp-action="Create" class="btn btn-primary">Add Teacher</a>
+</div>
+
+<table class="ec-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model)
+    {
+        <tr>
+            <td>@f.FullName</td>
+            <td>@f.Email</td>
+            <td>@f.Contact</td>
+            <td>
+                @if (f.IsActive)
+                {
+                    <span class="badge text-bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">Inactive</span>
+                }
+            </td>
+            <td class="text-end">
+                <a asp-action="Edit" asp-route-id="@f.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                <form asp-action="Delete" asp-route-id="@f.Id" method="post" class="d-inline"
+                      onsubmit="return confirm('Remove @f.FullName?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">No teachers yet. Add one above.</p>
+}

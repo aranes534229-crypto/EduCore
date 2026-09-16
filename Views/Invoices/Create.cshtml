@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "New invoice";
+    var fees = (List<EduCore.Models.Entities.Fee>?)ViewBag.Fees ?? new();
+}
+<h2>New invoice</h2>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3 col-md-6 col-12">
+        <div class="col-md-6">
+            <label class="form-label">Student</label>
+            <select name="studentId" asp-items="@ViewBag.Students" class="form-select">
+                <option value="">— select student —</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">School year</label>
+            <select name="schoolYearId" asp-items="@ViewBag.SchoolYears" class="form-select"></select>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Charges</h5>
+    @if (fees.Count == 0)
+    {
+        <p class="text-body-secondary">No fees on file. Add fees first (Admin → Fees).</p>
+    }
+    else
+    {
+        @foreach (var f in fees)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="feeIds" value="@f.Id" id="fee_@f.Id" checked />
+                <label class="form-check-label" for="fee_@f.Id">
+                    @f.Name — @f.Amount.ToString("N2")
+                </label>
+            </div>
+        }
+    }
+
+    <div>
+        <button type="submit" class="btn btn-primary mt-4">Create invoice</button>
+        <a asp-action="Index" class="btn btn-link mt-4">Cancel</a>
+    </div>
+</form>

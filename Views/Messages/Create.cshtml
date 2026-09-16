@@ -1,0 +1,26 @@
+@using EduCore.Models.Entities
+@model Message
+@{
+    ViewData["Title"] = "New message";
+}
+<h2>New message</h2>
+
+<form asp-action="Create" method="post" class="col-md-6 col-12">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label class="form-label">Student</label>
+        <select name="studentId" asp-items="@(ViewBag.Students as SelectList)" class="form-select"></select>
+        <div class="form-text">
+            @if (ViewBag.IsFaculty) { <text>Sends to this child's linked parent account.</text> }
+            else if (ViewBag.IsParent) { <text>Sends to your child's adviser.</text> }
+            else { <text>Sends to this child's linked parent account.</text> }
+        </div>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Body" class="form-label">Message</label>
+        <textarea name="body" class="form-control" rows="4" required></textarea>
+        <span asp-validation-for="Body" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Send</button>
+    <a asp-action="Index" class="btn btn-link">Cancel</a>
+</form>

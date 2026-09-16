@@ -1,0 +1,43 @@
+@model List<EduCore.ViewModels.GradeRowVM>
+@{
+    ViewData["Title"] = "Grades";
+    var ss = (EduCore.Models.Entities.SectionSubject)ViewBag.Ss;
+    var names = (Dictionary<int, string>)ViewBag.StudentNames;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Grades — @ss.Subject.FullName</h1>
+    <a asp-action="Index" class="btn btn-sm btn-link">Back to Gradebook</a>
+</div>
+<p class="text-body-secondary">@ss.Section.Name · @ss.Faculty.FullName</p>
+
+@if (TempData["Saved"] is not null)
+{
+    <div class="alert alert-success py-2">@TempData["Saved"]</div>
+}
+
+<form asp-action="Grades" asp-route-sectionSubjectId="@ss.Id" method="post">
+    <table class="table align-middle">
+        <thead><tr><th style="width:40%">Student</th><th style="width:12%">Score</th><th>Remarks</th></tr></thead>
+        <tbody>
+        @for (int i = 0; i < Model.Count; i++)
+        {
+            <tr>
+                <td>
+                    @names[Model[i].StudentId]
+                    <input type="hidden" asp-for="@Model[i].StudentId" />
+                </td>
+                <td><input asp-for="@Model[i].Score" class="form-control" type="number" min="0" max="100" /></td>
+                <td><input asp-for="@Model[i].Remarks" class="form-control" /></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Any())
+    {
+        <button type="submit" class="btn btn-primary">Save grades</button>
+    }
+    else
+    {
+        <p class="text-body-secondary">No students in this section yet.</p>
+    }
+</form>

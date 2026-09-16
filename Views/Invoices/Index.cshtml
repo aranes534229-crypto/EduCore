@@ -1,0 +1,43 @@
+@model IEnumerable<EduCore.Models.Entities.Invoice>
+@{
+    ViewData["Title"] = "Invoices";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Invoices</h2>
+    <a asp-action="Create" class="btn btn-primary">New invoice</a>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Student</th>
+            <th>School year</th>
+            <th>Issued</th>
+            <th class="text-end">Total</th>
+            <th class="text-end">Paid</th>
+            <th class="text-end">Balance</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var i in Model)
+    {
+        <tr>
+            <td>@i.Student.FullName</td>
+            <td>@i.SchoolYear.Name</td>
+            <td>@i.IssuedDate.ToString("yyyy-MM-dd")</td>
+            <td class="text-end">@i.Total.ToString("N2")</td>
+            <td class="text-end">@i.Paid.ToString("N2")</td>
+            <td class="text-end @(i.Balance > 0 ? "text-danger fw-semibold" : "")">@i.Balance.ToString("N2")</td>
+            <td class="text-end">
+                <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                <form class="d-inline" asp-action="Delete" asp-route-id="@i.Id" method="post"
+                      onsubmit="return confirm('Delete this invoice?');">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+@if (!Model.Any()) { <p class="text-body-secondary">No invoices yet. Create one.</p> }

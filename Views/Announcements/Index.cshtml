@@ -1,0 +1,35 @@
+@using EduCore.Models.Entities
+@model IEnumerable<Announcement>
+@{
+    ViewData["Title"] = "Announcements";
+}
+<h2>Announcements</h2>
+
+@if (ViewBag.CanPost)
+{
+    <div class="card mb-3 col-md-7 col-12">
+        <form asp-action="Create" method="post" class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-2"><input name="title" class="form-control" placeholder="Heading" required /></div>
+            <div class="mb-2"><textarea name="body" class="form-control" rows="2" placeholder="Announcement…" required></textarea></div>
+            <button type="submit" class="btn btn-sm btn-primary">Post</button>
+        </form>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">No announcements yet.</p>
+}
+@foreach (var a in Model)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between">
+                <h5 class="card-title mb-1">@a.Title</h5>
+                <span class="text-body-secondary small">@a.PostedAt.ToLocalTime().ToString("MMM d, yy") · @a.AuthorName</span>
+            </div>
+            <p class="mb-0">@a.Body</p>
+        </div>
+    </div>
+}

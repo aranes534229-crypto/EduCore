@@ -1,0 +1,48 @@
+@using EduCore.Models.Entities
+@model IEnumerable<Message>
+@{
+    ViewData["Title"] = "Messages";
+    var names = (Dictionary<string, string>)ViewBag.Names;
+    var students = (Dictionary<int, Student>)ViewBag.Students;
+    var unread = (HashSet<int>)ViewBag.UnreadIds;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Messages</h2>
+    @if (ViewBag.CanCompose)
+    {
+        <a asp-action="Create" class="btn btn-primary">New message</a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">No messages yet.</p>
+}
+else
+{
+    foreach (var m in Model)
+    {
+        var about = students.TryGetValue(m.StudentId, out var s) ? s.FullName : "—";
+        var isFromMe = m.SenderId == (string)ViewBag.UserId;
+        var other = isFromMe
+            ? names.GetValueOrDefault(m.RecipientId, "?")
+            : names.GetValueOrDefault(m.SenderId, "?");
+        var isNew = unread.Contains(m.Id);
+        <div class="card mb-2 @(isNew ? "border-primary" : "")">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">
+                        @(isFromMe ? "You" : other) → @(isFromMe ? other : "You")
+                        <span class="text-body-secondary">about @about</span>
+                    </span>
+                    <span class="small text-body-secondary">
+                        @m.SentAt.ToLocalTime().ToString("MMM d, HH:mm")
+                        @if (isNew) { <span class="badge text-bg-primary">New</span> }
+                    </span>
+                </div>
+                <p class="mb-1">@m.Body</p>
+                <a asp-action="Create" asp-route-studentId="@m.StudentId" class="small">Reply</a>
+            </div>
+        </div>
+    }
+}

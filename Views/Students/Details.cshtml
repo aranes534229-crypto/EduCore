@@ -1,0 +1,55 @@
+@model EduCore.Models.Entities.Student
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = Model.FullName;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">@Model.FullName</h1>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">First name</dt>
+            <dd class="col-sm-8">@Model.FirstName</dd>
+            <dt class="col-sm-4">Last name</dt>
+            <dd class="col-sm-8">@Model.LastName</dd>
+            <dt class="col-sm-4">Birth date</dt>
+            <dd class="col-sm-8">@(Model.BirthDate?.ToString("d") ?? "—")</dd>
+            <dt class="col-sm-4">Address</dt>
+            <dd class="col-sm-8">@Model.Address</dd>
+        </dl>
+    </div>
+    <div class="col-md-6">
+        <h5 class="mb-3">Guardian</h5>
+        <dl class="row">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8">@Model.GuardianName</dd>
+            <dt class="col-sm-4">Contact</dt>
+            <dd class="col-sm-8">@Model.GuardianContact</dd>
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">@Model.GuardianEmail</dd>
+        </dl>
+    </div>
+</div>
+
+@if (Model.Documents.Any())
+{
+    <h5 class="mt-4 mb-2">Documents</h5>
+    <ul class="list-group">
+        @foreach (var d in Model.Documents)
+        {
+            <li class="list-group-item">@d.FileName — @d.Type (@d.UploadedAt.ToString("g"))</li>
+        }
+    </ul>
+}
+
+<div class="mt-4 pt-3 border-top">
+    <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this student? This cannot be undone.');">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete Student</button>
+    </form>
+</div>

@@ -1,0 +1,28 @@
+@using EduCore.Controllers
+@{
+    ViewData["Title"] = "Reports";
+    var cards = (List<ReportsController.ReportCard>)ViewBag.Cards;
+}
+<h2>Reports</h2>
+
+@if (cards.Count == 0)
+{
+    <p class="text-body-secondary">No reports are available for your role.</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var c in cards)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="fs-5">@c.Title</div>
+                        <div class="text-body-secondary mb-3">@c.Description</div>
+                        <a class="btn btn-primary btn-sm" asp-action="@c.Action">Open</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

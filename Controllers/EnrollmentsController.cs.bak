@@ -1,0 +1,96 @@
+using EduCore.Data;
+using EduCore.Models.Constants;
+using EduCore.Models.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+
+namespace EduCore.Controllers;
+
+/// <summary>Module 2 — Enrollment. A student applies to a grade for a school year;
+/// Registrar/Admin approve, reject or withdraw. Accepting a student into a section stays in Module 5.</summary>
+[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
+public class EnrollmentsController : Controller
+{
+    private readonly AppDbContext _db;
+    public EnrollmentsController(AppDbContext db) => _db = db;
+
+    public async Task<IActionResult> Index()
+    {
+        var list = await _db.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.GradeLevel)
+            .Include(e => e.SchoolYear)
+            .OrderByDescending(e => e.ApplicationDate)
+            .ThenBy(e => e.Student.LastName)
+            .ToListAsync();
+        return View(list);
+    }
+
+    public async Task<IActionResult> Create()
+    {
+        await PopulateChoicesAsync();
+        return View(new Enrollment());
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    // Bind-exclude Status so it can only change via SetStatus (the sanctioned lifecycle action).
+    // The Create form never renders Status, but a forged POST could otherwise append &Status=Approved.
+    public async Task<IActionResult> Create([Bind("Id,StudentId,GradeLevelId,SchoolYearId,Notes")] Enrollment e)
+    {
+        if (!ModelState.IsValid)
+        {
+            await PopulateChoicesAsync(e.GradeLevelId, e.SchoolYearId);
+            return View(e);
+        }
+
+        if (await _db.Enrollments.AnyAsync(x => x.StudentId == e.StudentId && x.SchoolYearId == e.SchoolYearId))
+            ModelState.AddModelError(nameof(Enrollment.StudentId), "This student already has an application for that school year.");
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateChoicesAsync(e.GradeLevelId, e.SchoolYearId);
+            return View(e);
+        }
+
+        _db.Enrollments.Add(e);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetStatus(int id, EnrollmentStatus status)
+    {
+        var e = await _db.Enrollments.FindAsync(id);
+        if (e is not null && e.Status != status)
+        {
+            e.Status = status;
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var e = await _db.Enrollments.FindAsync(id);
+        if (e is not null)
+        {
+            _db.Enrollments.Remove(e);
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task PopulateChoicesAsync(int? gradeLevelId = null, int? schoolYearId = null)
+    {
+        ViewBag.Students = new SelectList(
+            await _db.Students.OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToListAsync(),
+            "Id", "FullName");
+        ViewBag.GradeLevels = new SelectList(
+            await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name", gradeLevelId);
+        ViewBag.SchoolYears = new SelectList(
+            await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name", schoolYearId);
+    }
+}

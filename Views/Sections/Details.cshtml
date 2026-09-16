@@ -1,0 +1,109 @@
+@model EduCore.Models.Entities.Section
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Section";
+    ViewData["Active"] = "Sections";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">@Model.Name</h1>
+    <div>
+        <a asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@Model.Id"
+           class="btn btn-sm btn-outline-secondary">Attendance</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+              onsubmit="return confirm('Remove this section? Students keep their records.');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+        <a asp-action="Index" class="btn btn-sm btn-link">Back</a>
+    </div>
+</div>
+
+<div class="ec-card p-4 mb-3">
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Grade</dt><dd class="col-sm-9">@Model.GradeLevel.Name</dd>
+        <dt class="col-sm-3">School Year</dt><dd class="col-sm-9">@Model.SchoolYear.Name</dd>
+        <dt class="col-sm-3">Adviser</dt><dd class="col-sm-9">@(Model.Adviser?.FullName ?? "—")</dd>
+    </dl>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <h2 class="h5">Subjects &amp; Teachers</h2>
+        <table class="ec-table ec-table-sm">
+            <thead><tr><th>Subject</th><th>Teacher</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var ss in Model.Subjects)
+            {
+                <tr>
+                    <td>@ss.Subject.FullName</td>
+                    <td>@ss.Faculty.FullName</td>
+                    <td class="text-end">
+                        <form asp-action="RemoveSubject" asp-route-id="@Model.Id"
+                              asp-route-sectionSubjectId="@ss.Id" method="post" class="d-inline"
+                              onsubmit="return confirm('Remove this subject and its grades?');">
+                            <button class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (!Model.Subjects.Any()) { <p class="text-body-secondary small">No subjects assigned yet.</p> }
+
+        <div class="ec-card p-3 mt-3">
+            <form asp-action="AddSubject" asp-route-id="@Model.Id" method="post">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small mb-1">Add subject &amp; assign teacher</label>
+                        <select name="subjectId" asp-items="ViewBag.Subjects" class="form-select form-select-sm"></select>
+                        <select name="facultyId" asp-items="ViewBag.Faculty" class="form-select form-select-sm mt-2"></select>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-sm btn-primary">Assign</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <h2 class="h5">Students (@Model.Students.Count)</h2>
+        <table class="ec-table ec-table-sm">
+            <thead><tr><th>Student</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var st in Model.Students.OrderBy(s => s.LastName))
+            {
+                <tr>
+                    <td>@st.FullName</td>
+                    <td class="text-end">
+                        <form asp-action="RemoveStudent" asp-route-id="@Model.Id"
+                              asp-route-studentId="@st.Id" method="post" class="d-inline">
+                            <button class="btn btn-sm btn-outline-secondary">Unassign</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (!Model.Students.Any()) { <p class="text-body-secondary small">No students assigned.</p> }
+
+        @if (((List<EduCore.Models.Entities.Student>)ViewBag.Pool).Count > 0)
+        {
+            <div class="ec-card p-3 mt-3">
+                <form asp-action="AssignStudent" asp-route-id="@Model.Id" method="post">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small mb-1">Assign a student (not yet in a section)</label>
+                            <select name="studentId" asp-items="@(new SelectList(ViewBag.Pool, "Id", "FullName"))" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-12"><button class="btn btn-sm btn-primary">Assign</button></div>
+                    </div>
+                </form>
+            </div>
+        }
+        else
+        {
+            <p class="text-body-secondary small">All students are placed in a section. Add a new student under <a asp-controller="Students">Students</a> to assign one here.</p>
+        }
+    </div>
+</div>

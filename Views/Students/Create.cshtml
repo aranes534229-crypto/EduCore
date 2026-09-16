@@ -1,0 +1,56 @@
+@model EduCore.Models.Entities.Student
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Add Student";
+}
+
+<h1 class="h3 mb-4">Add Student</h1>
+
+<form asp-action="Create" method="post">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="FirstName" class="form-label"></label>
+            <input asp-for="FirstName" class="form-control" />
+            <span asp-validation-for="FirstName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="LastName" class="form-label"></label>
+            <input asp-for="LastName" class="form-control" />
+            <span asp-validation-for="LastName" class="text-danger small"></span>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <label asp-for="BirthDate" class="form-label"></label>
+        <input asp-for="BirthDate" type="date" class="form-control" />
+    </div>
+
+    <div class="mt-3">
+        <label asp-for="Address" class="form-label"></label>
+        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+    </div>
+
+    <hr class="my-4" />
+    <h5 class="mb-3">Guardian</h5>
+    <div class="mb-3">
+        <label asp-for="GuardianName" class="form-label"></label>
+        <input asp-for="GuardianName" class="form-control" />
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="GuardianContact" class="form-label"></label>
+            <input asp-for="GuardianContact" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label asp-for="GuardianEmail" class="form-label"></label>
+            <input asp-for="GuardianEmail" class="form-control" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-4">Save</button>
+    <a asp-action="Index" class="btn btn-link mt-4">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

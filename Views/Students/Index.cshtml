@@ -1,0 +1,44 @@
+@model IEnumerable<EduCore.Models.Entities.Student>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Students";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Students</h1>
+    <a asp-action="Create" class="btn btn-primary">+</a>
+</div>
+
+<table class="ec-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Birth Date</th>
+            <th>Guardian</th>
+            <th>Contact</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.Id</td>
+                <td>@s.FullName</td>
+                <td>@(s.BirthDate?.ToString("d") ?? "—")</td>
+                <td>@s.GuardianName</td>
+                <td>@s.GuardianContact</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary mt-3">No students yet. Click "+ Add Student" above.</p>
+}

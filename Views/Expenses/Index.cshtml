@@ -1,0 +1,37 @@
+@model IEnumerable<EduCore.Models.Entities.Expense>
+@{
+    ViewData["Title"] = "Expenses";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Expenses</h2>
+    <a asp-action="Create" class="btn btn-primary">New expense</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Collected (payments)", Value = ((decimal)ViewBag.Collected).ToString("N2") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Expenses", Value = ((decimal)ViewBag.TotalExpenses).ToString("N2") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Net", Value = ((decimal)ViewBag.Net).ToString("N2"), ValueClass = (decimal)ViewBag.Net >= 0 ? "text-success" : "text-danger" })" />
+</div>
+
+<table class="table">
+    <thead>
+        <tr><th>Date</th><th>Description</th><th>Category</th><th class="text-end">Amount</th><th></th></tr>
+    </thead>
+    <tbody>
+    @foreach (var e in Model)
+    {
+        <tr>
+            <td>@e.Date.ToString("yyyy-MM-dd")</td>
+            <td>@e.Description</td>
+            <td>@(e.Category ?? "—")</td>
+            <td class="text-end">@e.Amount.ToString("N2")</td>
+            <td class="text-end">
+                <form asp-action="Delete" asp-route-id="@e.Id" method="post" onsubmit="return confirm('Delete this expense?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+@if (!Model.Any()) { <p class="text-body-secondary">No expenses yet.</p> }
