@@ -1,11 +1,9 @@
 services:
   - type: web
     name: educore
-    runtime: dotnet
-    buildCommand: "dotnet publish -c Release -o out"
-    startCommand: "dotnet out/EduCore.dll"
+    runtime: docker
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ASPNETCORE_URLS
-        value: http://+:${PORT}
+        value: http://+:10000

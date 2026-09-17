@@ -12,6 +12,9 @@ obj/
 # Local database files
 *.mdf
 *.ldf
+educore.db
+educore.db-shm
+educore.db-wal
 
 # Environment-specific settings (keep Production committed; ignore local-only variants)
 appsettings.Development.json
@@ -29,8 +32,6 @@ packages/
 *.log
 logs/
 
-# NuGet / libman packages
-wwwroot/lib/
 
 # Render publish output
 out/
