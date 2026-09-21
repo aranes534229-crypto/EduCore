@@ -19,7 +19,8 @@ public class ExpensesController : Controller
     {
         var expenses = await _db.Expenses.OrderByDescending(e => e.Date).ToListAsync();
         var totalExpenses = expenses.Sum(e => e.Amount);
-        var collected = await _db.Payments.SumAsync(p => (decimal?)p.Amount) ?? 0m;
+        // SQLite stores decimal as text and can't SUM() it in SQL; cast through double (REAL) for the aggregate.
+        var collected = (decimal?)(double?)await _db.Payments.SumAsync(p => (double?)p.Amount) ?? 0m;
         ViewBag.TotalExpenses = totalExpenses;
         ViewBag.Collected = collected;
         ViewBag.Net = collected - totalExpenses;

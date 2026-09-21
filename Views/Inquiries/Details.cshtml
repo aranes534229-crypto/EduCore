@@ -1,0 +1,104 @@
+@using EduCore.Models.Entities
+@model Inquiry
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Inquiry Details";
+    var names = (Dictionary<string, string>)ViewBag.Names;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Inquiry Details</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to list</a>
+</div>
+
+<div class="ec-card p-4 mb-4">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h6 class="text-uppercase fw-semibold">Student Information</h6>
+            <p class="mb-1"><strong>Name:</strong> @Model.StudentName</p>
+            <p><strong>Grade Level:</strong> @Model.GradeLevel.Name</p>
+        </div>
+        <div class="col-md-6">
+            <h6 class="text-uppercase fw-semibold">Contact Information</h6>
+            <p class="mb-1"><strong>Email:</strong> @Model.ContactEmail</p>
+            <p><strong>Phone:</strong> @Model.ContactPhone</p>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <h6 class="text-uppercase fw-semibold">Inquiry Details</h6>
+            <p class="mb-1"><strong>Date Submitted:</strong> @Model.DateCreated.ToString("MMM d, yyyy")</p>
+            <p class="mb-1"><strong>Status:</strong> <span class="badge @Model.StatusClass">@Model.Status</span></p>
+            <p><strong>Assigned To:</strong> @(Model.AssignedToId != null && names.TryGetValue(Model.AssignedToId, out var assignedName) ? assignedName : "Unassigned")</p>
+        </div>
+    </div>
+</div>
+
+@if (Model.Status == InquiryStatus.Rejected)
+{
+    var reason = Model.Thread
+        .OrderByDescending(n => n.Timestamp)
+        .FirstOrDefault(n => n.Body.StartsWith("Inquiry rejected:"))?
+        .Body.Replace("Inquiry rejected: ", "");
+    <div class="alert alert-danger mb-4">
+        <strong>Rejected</strong> — @(string.IsNullOrEmpty(reason) ? "No reason provided." : reason)
+    </div>
+}
+
+@if (Model.ConvertedStudentId != null)
+{
+    <div class="alert alert-success mb-4">
+        <strong>Approved</strong> — Student @(Model.ConvertedStudent?.StudentNumber ?? $"#{Model.ConvertedStudentId}") created.
+        @if (Model.ConvertedEnrollmentId != null)
+        {
+            <span>Enrollment application awaiting approval.</span>
+        }
+    </div>
+}
+else
+{
+    <div class="ec-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Enrollment Application</h5>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <h6 class="text-uppercase fw-semibold">Birth date</h6>
+                <div>@(Model.BirthDate?.ToString("MMM d, yyyy") ?? "-")</div>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-uppercase fw-semibold">Address</h6>
+                <div>@(string.IsNullOrEmpty(Model.Address) ? "-" : Model.Address)</div>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-uppercase fw-semibold">Guardian</h6>
+                <div>@(string.IsNullOrEmpty(Model.GuardianName) ? "-" : Model.GuardianName)</div>
+            </div>
+        </div>
+        <h6 class="text-uppercase fw-semibold mb-2">Documents</h6>
+        @if (Model.Documents.Any())
+        {
+            <ul class="mb-3">
+                @foreach (var d in Model.Documents)
+                {
+                    <li>
+                        <a href="@Url.Content($"~/{d.Path}")" target="_blank" rel="noopener">@d.FileName</a>
+                        <span class="small">(@d.Type, @d.UploadedAt.ToString("g"))</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="small mb-3">No documents uploaded yet.</p>
+        }
+        <form asp-action="Convert" asp-route-id="@Model.Id" method="post">
+            <button type="submit" class="btn btn-success">Approve enrollment</button>
+        </form>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

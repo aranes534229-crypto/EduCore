@@ -1,0 +1,83 @@
+@using EduCore.Models.Entities
+@model Inquiry
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Inquiry #" + Model.Id;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Inquiry #@Model.Id</h1>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge @Model.StatusClass">@Model.Status</span>
+        <a asp-action="MyInquiries" class="btn btn-outline-secondary">Back to my inquiries</a>
+    </div>
+</div>
+
+<div class="ec-card p-4">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h6 class="text-uppercase text-body-secondary">Student</h6>
+            <p class="mb-1">@Model.StudentName</p>
+            <p class="mb-0 text-body-secondary small">@(Model.GradeLevel?.Name ?? "-")</p>
+        </div>
+        <div class="col-md-6">
+            <h6 class="text-uppercase text-body-secondary">Submitted</h6>
+            <p class="mb-1">@Model.DateCreated.ToString("MMM d, yyyy")</p>
+            @if (!string.IsNullOrEmpty(Model.ContactPhone))
+            {
+                <p class="mb-0 text-body-secondary small">Phone: @Model.ContactPhone</p>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(Model.ContactEmail))
+    {
+        <div>
+            <h6 class="text-uppercase text-body-secondary">Contact</h6>
+            <p class="mb-0">@Model.ContactEmail</p>
+        </div>
+    }
+</div>
+
+@if (Model.Status == InquiryStatus.Rejected)
+{
+    var reason = Model.Thread
+        .OrderByDescending(n => n.Timestamp)
+        .FirstOrDefault(n => n.Body.StartsWith("Inquiry rejected:"))?
+        .Body.Replace("Inquiry rejected: ", "");
+    <div class="alert alert-danger mt-3">
+        <strong>Rejected</strong> — @(string.IsNullOrEmpty(reason) ? "No reason provided." : reason)
+    </div>
+}
+else if (Model.Status == InquiryStatus.New)
+{
+    <div class="alert alert-info mt-3">Your inquiry is being reviewed by the registrar.</div>
+}
+else if (Model.Status == InquiryStatus.Approved)
+{
+    <div class="alert alert-success mt-3">Your inquiry has been approved. The registrar will contact you about next steps.</div>
+}
+
+<div class="ec-card p-4 mt-3">
+    <h6 class="text-uppercase text-body-secondary mb-3">Conversation</h6>
+    @if (!Model.Thread.Any())
+    {
+        <p class="text-body-secondary mb-0">No replies yet. A registrar will follow up soon.</p>
+    }
+    else
+    {
+        <div class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto;">
+            @foreach (var note in Model.Thread.OrderBy(n => n.Timestamp))
+            {
+                <div class="mb-3">
+                    <small class="fw-semibold text-body-secondary">
+                        @(note.Staff?.DisplayName ?? "You") — @note.Timestamp.ToString("MMM d, h:mm tt")
+                    </small>
+                    @if (note.Visibility == "Registrar")
+                    {
+                        <span class="badge bg-secondary text-bg-secondary small">Internal</span>
+                    }
+                    <div class="mt-1">@note.Body</div>
+                </div>
+            }
+        </div>
+    }
+</div>

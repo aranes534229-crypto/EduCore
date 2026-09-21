@@ -6,47 +6,68 @@
 
 <h1 class="h3 mb-4">Edit Student</h1>
 
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <h5 class="mt-3 mb-2">Child's information</h5>
     <div class="row g-3">
         <div class="col-md-6">
-            <label asp-for="FirstName" class="form-label"></label>
+            <label asp-for="FirstName" class="form-label">First name</label>
             <input asp-for="FirstName" class="form-control" />
             <span asp-validation-for="FirstName" class="text-danger small"></span>
         </div>
         <div class="col-md-6">
-            <label asp-for="LastName" class="form-label"></label>
+            <label asp-for="LastName" class="form-label">Last name</label>
             <input asp-for="LastName" class="form-control" />
             <span asp-validation-for="LastName" class="text-danger small"></span>
         </div>
     </div>
-
-    <div class="mt-3">
-        <label asp-for="BirthDate" class="form-label"></label>
+    <div class="mb-3">
+        <label asp-for="BirthDate" class="form-label">Birth date</label>
         <input asp-for="BirthDate" type="date" class="form-control" />
     </div>
-
-    <div class="mt-3">
-        <label asp-for="Address" class="form-label"></label>
+    <div class="mb-3">
+        <label asp-for="Address" class="form-label">Home address</label>
         <textarea asp-for="Address" class="form-control" rows="2"></textarea>
     </div>
-
-    <hr class="my-4" />
-    <h5 class="mb-3">Guardian</h5>
     <div class="mb-3">
-        <label asp-for="GuardianName" class="form-label"></label>
+        <label asp-for="GuardianName" class="form-label">Parent/guardian name</label>
         <input asp-for="GuardianName" class="form-control" />
     </div>
+
+    <h5 class="mt-3 mb-2">Contact</h5>
     <div class="row g-3">
         <div class="col-md-6">
-            <label asp-for="GuardianContact" class="form-label"></label>
+            <label asp-for="GuardianContact" class="form-label">Phone number</label>
             <input asp-for="GuardianContact" class="form-control" />
         </div>
         <div class="col-md-6">
-            <label asp-for="GuardianEmail" class="form-label"></label>
+            <label asp-for="GuardianEmail" class="form-label">Email</label>
             <input asp-for="GuardianEmail" class="form-control" />
         </div>
+    </div>
+
+    <h5 class="mt-4 mb-2">Documents</h5>
+    <p class="text-body-secondary small">Birth certificate, most recent report card, and a 2×2 photo (.jpg, .png, or .pdf).</p>
+    @if (Model.Documents.Any())
+    {
+        <div class="mb-3 small text-body-secondary">
+            Already uploaded: @string.Join(", ", Model.Documents.Select(d => d.FileName))
+        </div>
+    }
+    <div class="mb-3">
+        <label class="form-label">Birth certificate</label>
+        <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Most recent report card</label>
+        <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">2×2 photo</label>
+        <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
     </div>
 
     <button type="submit" class="btn btn-primary mt-4">Save</button>

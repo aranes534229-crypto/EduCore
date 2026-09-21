@@ -8,7 +8,7 @@
     <h1 class="h3 mb-0">Grades — @ss.Subject.FullName</h1>
     <a asp-action="Index" class="btn btn-sm btn-link">Back to Gradebook</a>
 </div>
-<p class="text-body-secondary">@ss.Section.Name · @ss.Faculty.FullName</p>
+<p class="text-body-secondary">@ss.Section.Name · @(ss.Faculty?.FullName ?? "—")</p>
 
 @if (TempData["Saved"] is not null)
 {

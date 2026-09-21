@@ -1,10 +1,13 @@
 @using EduCore.Controllers
 @using EduCore.Models.Entities
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Class results report";
     var options = (List<SectionSubject>)ViewBag.Options;
 }
-<h2>Class results report</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Class results report</h1>
+</div>
 
 @if (options.Count == 0)
 {
@@ -19,7 +22,7 @@ else
                 @foreach (var ss in options)
                 {
                     <option value="@ss.Id" selected="@(ss.Id == (int)ViewBag.SelectedId)">
-                        @ss.Section.Name — @ss.Subject.FullName (@ss.Faculty.FullName)
+                        @ss.Section.Name — @ss.Subject.FullName (@(ss.Faculty?.FullName ?? "—"))
                     </option>
                 }
             </select>
@@ -31,11 +34,11 @@ else
         var rows = (List<ReportsController.StudentResult>)ViewBag.Rows;
         <h5>@q.Section.Name — @q.Subject.FullName</h5>
         <p class="text-body-secondary">
-            Teacher: @q.Faculty.FullName ·
+            Teacher: @(q.Faculty?.FullName ?? "—") ·
             Section average: @(ViewBag.Average is decimal avg ? avg.ToString("N2") : "—")
             (@ViewBag.HavingScores of @rows.Count graded)
         </p>
-        <table class="table table-sm table-hover">
+        <table class="ec-table">
             <thead>
                 <tr><th>Student</th><th>Score</th><th>Remarks</th></tr>
             </thead>

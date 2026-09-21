@@ -116,14 +116,16 @@ public class ReportsController : Controller
         // ponytail: one SumAsync per figure; these tables are small so extra round-trips < a grouped query here.
         var invoices = await _db.Invoices
             .Include(i => i.Student)
+            .Include(i => i.Lines)
             .Include(i => i.Payments)
             .ToListAsync();
 
         var totalBilled = invoices.Sum(i => i.Total);
-        var totalCollected = await _db.Payments.SumAsync(p => (decimal?)p.Amount) ?? 0m;
+        // SQLite stores decimal as text and can't SUM() it in SQL; cast through double (REAL) for the aggregate.
+        var totalCollected = (decimal?)(double?)await _db.Payments.SumAsync(p => (double?)p.Amount) ?? 0m;
         // per-invoice Outstanding = Total - Paid; sum the computed balance, never store it.
         var totalOutstanding = invoices.Sum(i => i.Balance);
-        var totalExpenses = await _db.Expenses.SumAsync(e => (decimal?)e.Amount) ?? 0m;
+        var totalExpenses = (decimal?)(double?)await _db.Expenses.SumAsync(e => (double?)e.Amount) ?? 0m;
 
         ViewBag.TotalBilled = totalBilled;
         ViewBag.TotalCollected = totalCollected;

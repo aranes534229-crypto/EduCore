@@ -1,0 +1,76 @@
+@model EduCore.Models.Entities.Section
+@using EduCore.Models.Entities
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Schedule — {Model.Name}";
+    var pool = (List<Student>?)ViewBag.Pool ?? new();
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        Schedule — @Model.Name
+        <span class="text-body-secondary fs-6">@Model.GradeLevel?.Name · @Model.SchoolYear?.Name</span>
+    </h1>
+    @if (Model.IsSubmitted)
+    {
+        <span class="badge text-bg-success">Submitted to Finance @Model.SubmittedToFinanceAt!.Value.ToString("yyyy-MM-dd")</span>
+    }
+</div>
+
+<div class="ec-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h5 mb-0">Enrolled students (@Model.Students.Count)</h2>
+        @if (!Model.IsSubmitted)
+        {
+            <form asp-action="SubmitToFinance" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Submit this roster to Finance for billing? No further changes can be made.');">
+                <button class="btn btn-primary" @(Model.Students.Count == 0 ? "disabled" : "")>
+                    Submit to Finance
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (Model.IsSubmitted)
+    {
+        <p class="text-body-secondary small mb-3">This roster was submitted to Finance and is locked. Contact an Admin to change it.</p>
+    }
+
+    <table class="ec-table ec-table-sm">
+        <tbody>
+        @foreach (var st in Model.Students.OrderBy(st => st.LastName).ThenBy(st => st.FirstName))
+        {
+            <tr>
+                <td>@st.FullName</td>
+                <td class="text-end">
+                    @if (!Model.IsSubmitted)
+                    {
+                        <form asp-action="RemoveStudent" asp-route-id="@Model.Id" asp-route-studentId="@st.Id"
+                              method="post" class="d-inline">
+                            <button class="btn btn-sm btn-outline-secondary">Unassign</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (!Model.Students.Any()) { <p class="text-body-secondary small">No students assigned yet.</p> }
+
+    @if (!Model.IsSubmitted)
+    {
+        if (pool.Count > 0)
+        {
+            <form asp-action="AssignStudent" asp-route-id="@Model.Id" method="post" class="row g-2 mt-3">
+                <div class="col-auto">
+                    <label class="form-label small mb-1">Assign an enrolled student not yet placed</label>
+                    <select name="studentId" asp-items="@(new SelectList(pool, "Id", "FullName"))" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-auto align-self-end"><button class="btn btn-sm btn-primary">Assign</button></div>
+            </form>
+        }
+        else
+        {
+            <p class="text-body-secondary small mt-3">No unplaced students have an approved enrollment for this grade &amp; year.</p>
+        }
+    }
+</div>

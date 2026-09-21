@@ -8,8 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace EduCore.Controllers;
 
 /// <summary>Login/logout entry points. Uses the stock SignInManager so the same
-/// seed accounts keep working. Anonymous-allowed so the page renders before sign-in.</summary>
-[AllowAnonymous]
+/// seed accounts keep working. Login/Register are anonymous; everything else
+/// (Logout, Settings) requires a signed-in user.</summary>
+[Authorize]
 [Route("[controller]/[action]")]
 public class AccountController : Controller
 {
@@ -23,6 +24,7 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult Login(string? returnUrl = null)
     {
         if (_signIn.IsSignedIn(User))
@@ -33,6 +35,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [AllowAnonymous]
     public async Task<IActionResult> Login(LoginViewModel vm)
     {
         if (!ModelState.IsValid) return View(vm);
@@ -56,6 +59,7 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult Register(string? returnUrl = null)
     {
         if (_signIn.IsSignedIn(User))
@@ -66,6 +70,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [AllowAnonymous]
     public async Task<IActionResult> Register(RegisterViewModel vm)
     {
         if (!ModelState.IsValid) return View(vm);
@@ -89,6 +94,41 @@ public class AccountController : Controller
         foreach (var err in result.Errors)
             ModelState.AddModelError("", err.Description);
         return View(vm);
+    }
+
+    /// <summary>Self-service password change (sidebar Settings link). Authenticated for any role —
+    /// provisioning others' accounts is the Admin-only AccountsController.</summary>
+    [HttpGet]
+    public IActionResult Settings() => View(new ChangePasswordViewModel());
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel vm)
+    {
+        if (!ModelState.IsValid) return View("Settings", vm);
+
+        var user = await _users.GetUserAsync(User);
+        if (user is null) return Challenge();
+
+        if (vm.CurrentPassword is null || !await _users.CheckPasswordAsync(user, vm.CurrentPassword))
+        {
+            ModelState.AddModelError(nameof(ChangePasswordViewModel.CurrentPassword), "Current password is incorrect.");
+            return View("Settings", vm);
+        }
+
+        var result = await _users.ChangePasswordAsync(user, vm.CurrentPassword, vm.NewPassword);
+        if (!result.Succeeded)
+        {
+            foreach (var err in result.Errors)
+                ModelState.AddModelError(nameof(ChangePasswordViewModel.NewPassword), err.Description);
+            return View("Settings", vm);
+        }
+
+        // Changing the password regenerates the security stamp and drops the auth cookie, so re-sign-in
+        // to keep the user in rather than bouncing them to the login page.
+        await _signIn.SignInAsync(user, isPersistent: false);
+        TempData["Info"] = "Password updated.";
+        return RedirectToAction(nameof(Settings));
     }
 
     private static IActionResult? RedirectToLocal(string? returnUrl)

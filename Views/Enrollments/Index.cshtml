@@ -6,12 +6,13 @@
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Enrollments</h1>
-    <a asp-action="Create" class="btn btn-primary">New application</a>
+    <a asp-action="Create" class="btn btn-primary">New Enrollment</a>
 </div>
 
 <table class="ec-table">
     <thead>
         <tr>
+            <th>Student ID</th>
             <th>Student</th>
             <th>Applying for</th>
             <th>School year</th>
@@ -24,31 +25,22 @@
     @foreach (var e in Model)
     {
         <tr>
+            <td>@e.Student.StudentNumber</td>
             <td>@e.Student.FullName</td>
             <td>@e.GradeLevel.Name</td>
             <td>@e.SchoolYear.Name</td>
             <td>@e.ApplicationDate.ToString("yyyy-MM-dd")</td>
             <td><span class="badge @e.StatusClass">@e.Status</span></td>
-            <td class="text-end">
-                @if (e.Status == EnrollmentStatus.Applied)
+            <td class="text-end text-nowrap">
+                <a asp-action="Details" asp-route-id="@e.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                <a asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                @if (User.IsInRole("Admin"))
                 {
-                    <form class="d-inline" asp-action="SetStatus" asp-route-id="@e.Id" asp-route-status="@EnrollmentStatus.Approved" method="post">
-                        <button class="btn btn-sm btn-success">Approve</button>
-                    </form>
-                    <form class="d-inline" asp-action="SetStatus" asp-route-id="@e.Id" asp-route-status="@EnrollmentStatus.Rejected" method="post">
-                        <button class="btn btn-sm btn-outline-danger">Reject</button>
+                    <form class="d-inline" asp-action="Delete" asp-route-id="@e.Id" method="post"
+                          onsubmit="return confirm('Delete this application?');">
+                        <button class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>
                 }
-                else if (e.Status == EnrollmentStatus.Approved)
-                {
-                    <form class="d-inline" asp-action="SetStatus" asp-route-id="@e.Id" asp-route-status="@EnrollmentStatus.Withdrawn" method="post">
-                        <button class="btn btn-sm btn-outline-warning">Withdraw</button>
-                    </form>
-                }
-                <form class="d-inline" asp-action="Delete" asp-route-id="@e.Id" method="post"
-                      onsubmit="return confirm('Delete this application?');">
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
-                </form>
             </td>
         </tr>
     }

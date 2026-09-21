@@ -1,18 +1,36 @@
 using EduCore.Data;
 using EduCore.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ponytail: Dev prefers SQL Server (localdb), but if it's not reachable (no LocalDB
+// instance in the sandbox), fall back to a local SQLite file so `dotnet run` works
+// without SQL Server installed. Production already uses SQLite.
+var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+var useSqlite = !builder.Environment.IsDevelopment();
+if (builder.Environment.IsDevelopment())
+{
+    try
+    {
+        using var probe = new SqlConnection(cs);
+        probe.Open();
+    }
+    catch (SqlException)
+    {
+        useSqlite = true;
+        cs = "DataSource=educore-dev.db";
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(o =>
 {
-    // ponytail: Production uses SQLite (Render has no SQL Server add-on).
-    // Dev keeps localdb. Swap to PostgreSQL/SQL Server in real prod.
-    if (builder.Environment.IsDevelopment())
-        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    if (useSqlite)
+        o.UseSqlite(cs);
     else
-        o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+        o.UseSqlServer(cs);
 });
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(o =>
@@ -40,12 +58,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    // ponytail: SQLite provider (Production/Render) can't reuse SQL Server migrations.
-    // EnsureCreated builds the schema from the model directly; seed still runs.
-    if (app.Environment.IsDevelopment())
-        db.Database.Migrate();
-    else
-        db.Database.EnsureCreated();
+    // ponytail: SQLite provider can't reuse SQL Server migrations; EnsureCreated builds
+    // the schema from the model directly. Seed runs either way.
+    db.Database.EnsureCreated();
     await DbSeeder.SeedAsync(db, users, roles);
 }
 

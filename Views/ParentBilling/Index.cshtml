@@ -1,0 +1,55 @@
+@model IEnumerable<EduCore.Models.Entities.Invoice>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Tuition & Billing";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Tuition &amp; Billing</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">No statements yet. Once your child is enrolled, their tuition
+        statement appears here and you can pay it — in full or in parts.</p>
+}
+else
+{
+    <table class="ec-table">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Invoice #</th>
+                <th>Student</th>
+                <th>School year</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Balance</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td>
+                    @if (i.Balance <= 0)
+                    {
+                        <span class="badge text-bg-success">Fully paid</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-danger">Outstanding</span>
+                    }
+                </td>
+                <td class="fw-semibold">@(i.Number ?? "—")</td>
+                <td>@i.Student.FullName</td>
+                <td>@i.SchoolYear.Name</td>
+                <td class="text-end">@i.Total.ToString("N2")</td>
+                <td class="text-end fw-semibold @(i.Balance > 0 ? "text-danger" : "text-success")">@i.Balance.ToString("N2")</td>
+                <td class="text-end">
+                    <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View &amp; pay</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

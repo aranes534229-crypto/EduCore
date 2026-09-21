@@ -6,7 +6,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0">@Model.FullName</h1>
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+    @if (!User.IsInRole("Finance"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+    }
 </div>
 
 <div class="row">
@@ -41,15 +44,21 @@
     <ul class="list-group">
         @foreach (var d in Model.Documents)
         {
-            <li class="list-group-item">@d.FileName — @d.Type (@d.UploadedAt.ToString("g"))</li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="@Url.Content($"~/{d.Path}")" target="_blank" rel="noopener">@d.FileName</a>
+                <span class="text-body-secondary small">@d.Type · @d.UploadedAt.ToString("g")</span>
+            </li>
         }
     </ul>
 }
 
-<div class="mt-4 pt-3 border-top">
-    <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this student? This cannot be undone.');">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn btn-sm btn-outline-danger">Delete Student</button>
-    </form>
-</div>
+@if (!User.IsInRole("Finance"))
+{
+    <div class="mt-4 pt-3 border-top">
+        <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this student? This cannot be undone.');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-sm btn-outline-danger">Delete Student</button>
+        </form>
+    </div>
+}

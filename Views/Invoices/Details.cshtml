@@ -1,6 +1,8 @@
+@using EduCore.Models.Constants
 @model EduCore.Models.Entities.Invoice
 @{
-    ViewData["Title"] = $"Invoice — {Model.Student.FullName}";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Tuition & Billing — {Model.Student.FullName}";
 }
 @if (TempData["Error"] is string error)
 {
@@ -8,13 +10,13 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Invoice — @Model.Student.FullName</h2>
+    <h2>Tuition & Billing — @Model.Student.FullName</h2>
     <div class="text-end fs-5">
         <span class="text-body-secondary">Balance:</span>
         <span class="@(Model.Balance > 0 ? "text-danger fw-bold" : "text-success fw-bold")">@Model.Balance.ToString("N2")</span>
     </div>
 </div>
-<p class="text-body-secondary">School year: @Model.SchoolYear.Name · Issued @Model.IssuedDate.ToString("yyyy-MM-dd")</p>
+<p class="text-body-secondary">Invoice @(Model.Number ?? "—") · School year: @Model.SchoolYear.Name · Issued @Model.IssuedDate.ToString("yyyy-MM-dd")</p>
 
 <h5>Charges</h5>
 <table class="table table-sm col-md-6 col-12">
@@ -41,6 +43,7 @@
             <th>Method</th>
             <th>Reference</th>
             <th class="text-end">Amount</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -51,6 +54,7 @@
             <td>@p.Method</td>
             <td>@(p.Reference ?? "—")</td>
             <td class="text-end">@p.Amount.ToString("N2")</td>
+            <td class="text-nowrap"><a asp-action="Receipt" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Receipt</a></td>
         </tr>
     }
     </tbody>
@@ -69,7 +73,12 @@
     </div>
     <div class="col-md-3">
         <label for="pf_Method" class="form-label">Method</label>
-        <input name="p.Method" id="pf_Method" class="form-control" placeholder="Cash / GCash / Bank" />
+        <select name="p.Method" id="pf_Method" class="form-select">
+            @foreach (var m in PaymentMethods.All)
+            {
+                <option value="@m" selected="@(m == "Manual")">@m</option>
+            }
+        </select>
     </div>
     <div class="col-md-3">
         <label for="pf_Reference" class="form-label">Reference</label>
@@ -81,5 +90,5 @@
 </form>
 
 <div class="mt-4">
-    <a asp-action="Index" class="btn btn-link">Back to invoices</a>
+    <a asp-action="Index" class="btn btn-link">Back to Tuition & Billing</a>
 </div>

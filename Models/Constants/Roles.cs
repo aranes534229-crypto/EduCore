@@ -12,3 +12,19 @@ public static class AppRoles
 
     public static readonly string[] All = { Admin, Registrar, Faculty, Finance, Parent };
 }
+
+/// <summary>Accepted payment methods when recording a payment toward an invoice
+/// (Finance + Parent forms). Only these two are permitted; anything else must
+/// be recorded separately.</summary>
+public static class PaymentMethods
+{
+    public const string Manual = "Manual";
+    public const string AccountPortal = "Account Portal Payment";
+
+    /// <summary>Methods selectable by staff (Finance/Admin). Parents have no choice —
+    /// their payment is always debited from their own account (AccountPortal).</summary>
+    public static readonly string[] All = { Manual, AccountPortal };
+
+    /// <summary>The sole method a parent's portal form may record.</summary>
+    public const string ParentOnly = AccountPortal;
+}

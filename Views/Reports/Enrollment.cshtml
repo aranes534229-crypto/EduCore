@@ -1,10 +1,13 @@
 @model List<Enrollment>
 @using EduCore.Models.Entities
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Enrollment report";
     var totals = (Dictionary<EnrollmentStatus, int>)ViewBag.Totals;
 }
-<h2>Enrollment report</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Enrollment report</h1>
+</div>
 
 <form method="get" class="row g-2 align-items-center mb-3 col-md-6 col-12">
     <div class="col-auto">
@@ -18,15 +21,10 @@
 </form>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-2 col-6"><div class="card"><div class="card-body">
-        <div class="text-body-secondary">Total</div><div class="fs-4">@ViewBag.Total</div>
-    </div></div></div>
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-2 col-6", Label = "Total", Value = ViewBag.Total.ToString() })" />
     @foreach (var status in Enum.GetValues<EnrollmentStatus>())
     {
-        <div class="col-md-2 col-6"><div class="card"><div class="card-body">
-            <div class="text-body-secondary">@status.ToString()</div>
-            <div class="fs-4">@totals[status]</div>
-        </div></div></div>
+        <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-2 col-6", Label = status.ToString(), Value = totals[status].ToString() })" />
     }
 </div>
 
@@ -36,7 +34,7 @@
 }
 else
 {
-    <table class="table table-sm table-hover">
+    <table class="ec-table">
         <thead>
             <tr><th>Student</th><th>Grade</th><th>Applied</th><th>Status</th></tr>
         </thead>

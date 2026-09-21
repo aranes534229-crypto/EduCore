@@ -1,0 +1,38 @@
+@using EduCore.Models.Entities
+@model IEnumerable<Inquiry>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "My inquiries";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">My inquiries</h1>
+    <a asp-action="Submit" class="btn btn-primary">New inquiry</a>
+</div>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">You haven't submitted any inquiries yet.</p>
+}
+else
+{
+    <table class="ec-table">
+        <thead>
+            <tr><th>#</th><th>Child</th><th>Grade</th><th>Status</th><th>Date</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td>@i.Id</td>
+                <td>@i.StudentName</td>
+                <td>@(i.GradeLevel?.Name ?? "-")</td>
+                <td><span class="badge @i.StatusClass">@i.Status</span></td>
+                <td>@i.DateCreated.ToString("MMM d")</td>
+                <td class="text-end text-nowrap">
+                    <a asp-action="ParentDetails" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

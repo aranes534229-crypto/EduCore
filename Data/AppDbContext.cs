@@ -29,6 +29,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Inquiry> Inquiries => Set<Inquiry>();
+    public DbSet<InquiryNote> InquiryNotes => Set<InquiryNote>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -58,9 +59,60 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         b.Entity<InvoiceLine>().Property(l => l.Amount).HasPrecision(18, 2);
         b.Entity<Payment>().Property(p => p.Amount).HasPrecision(18, 2);
         b.Entity<Expense>().Property(e => e.Amount).HasPrecision(18, 2);
+        b.Entity<GradeLevel>().Property(g => g.Amount).HasPrecision(18, 2);
 
+        // Demo tuition: a little more per grade step so the billing flow shows realistic numbers.
         b.Entity<GradeLevel>().HasData(
             Enumerable.Range(1, 12)
-                .Select(i => new GradeLevel { Id = i, Name = $"Grade {i}", SortOrder = i }));
+                .Select(i => new GradeLevel { Id = i, Name = $"Grade {i}", SortOrder = i, Amount = 10000m + 1500m * i }));
+
+        b.Entity<InquiryNote>()
+            .HasOne(n => n.Inquiry)
+            .WithMany(i => i.Thread)
+            .HasForeignKey(n => n.InquiryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<InquiryNote>()
+            .HasOne(n => n.Staff)
+            .WithMany()
+            .HasForeignKey(n => n.StaffId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        b.Entity<Inquiry>()
+            .HasOne(i => i.Assignee)
+            .WithMany()
+            .HasForeignKey(i => i.AssignedToId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        b.Entity<Inquiry>()
+            .HasOne(i => i.CreatedBy)
+            .WithMany()
+            .HasForeignKey(i => i.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Restrict, not Cascade: SQL Server forbids a Cascade path into Inquiries from
+        // GradeLevel (creates multiple-cascade-path conflict in the delete graph), and
+        // it's wrong anyway to delete a grade level that still has inquiries.
+        b.Entity<Inquiry>()
+            .HasOne(i => i.GradeLevel)
+            .WithMany()
+            .HasForeignKey(i => i.GradeLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Restrict for both conversions: SQL Server 1785 forbids any second cascade/set-null
+        // path into Inquiries from a single Student delete (it would reach the row via
+        // ConvertedStudentId and again via Enrollments -> ConvertedEnrollmentId). Blocking
+        // the delete of a converted student/enrollment is preferred to the ambiguity.
+        b.Entity<Inquiry>()
+            .HasOne(i => i.ConvertedStudent)
+            .WithMany()
+            .HasForeignKey(i => i.ConvertedStudentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        b.Entity<Inquiry>()
+            .HasOne(i => i.ConvertedEnrollment)
+            .WithMany()
+            .HasForeignKey(i => i.ConvertedEnrollmentId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

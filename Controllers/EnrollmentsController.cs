@@ -9,8 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Controllers;
 
-/// <summary>Module 2 — Enrollment. A student applies to a grade for a school year;
-/// Registrar/Admin approve, reject or withdraw. Accepting a student into a section stays in Module 5.</summary>
+/// <summary>Module 2 — Enrollment. A student is enrolled into a grade for a school year;
+/// status is Unscheduled until the Registrar places them in a section (see SectionsController),
+/// which flips it to Scheduled.</summary>
 [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
 public class EnrollmentsController : Controller
 {
@@ -23,40 +24,34 @@ public class EnrollmentsController : Controller
             .Include(e => e.Student)
             .Include(e => e.GradeLevel)
             .Include(e => e.SchoolYear)
-            .OrderByDescending(e => e.ApplicationDate)
-            .ThenBy(e => e.Student.LastName)
+            .OrderByDescending(e => e.Id)
             .ToListAsync();
         return View(list);
     }
 
     public async Task<IActionResult> Create()
     {
-        await PopulateChoicesAsync();
+        await PopulateChoicesAsync(true);
         return View(new Enrollment());
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    // Bind-exclude Status so it can only change via SetStatus (the sanctioned lifecycle action).
-    // The Create form never renders Status, but a forged POST could otherwise append &Status=Approved.
+    // Bind-exclude Status so it can only change via the scheduling flow (SectionController),
+    // never from a form. A forged POST could otherwise append &Status=Scheduled.
     public async Task<IActionResult> Create([Bind("Id,StudentId,GradeLevelId,SchoolYearId,Notes")] Enrollment e)
     {
-        // TEMP DEBUG
-        var debugErrors = string.Join(", ", ModelState.Where(kv => kv.Value.ValidationState.ToString() != "Valid")
-            .Select(kv => $"{kv.Key}:[{string.Join("; ", kv.Value.Errors.Select(x => x.ErrorMessage))}]"));
-        System.IO.File.WriteAllText("/tmp/modelstate_debug.txt", $"IsValid={ModelState.IsValid}, e.StudentId={e.StudentId}, e.GradeLevelId={e.GradeLevelId}, e.SchoolYearId={e.SchoolYearId}, errors=[{debugErrors}]");
-
         if (!ModelState.IsValid)
         {
-            await PopulateChoicesAsync(e.GradeLevelId, e.SchoolYearId);
+            await PopulateChoicesAsync(true, e.GradeLevelId, e.SchoolYearId);
             return View(e);
         }
 
-        if (await _db.Enrollments.AnyAsync(x => x.StudentId == e.StudentId && x.SchoolYearId == e.SchoolYearId))
+        if (await DuplicateAsync(e, 0))
             ModelState.AddModelError(nameof(Enrollment.StudentId), "This student already has an application for that school year.");
 
         if (!ModelState.IsValid)
         {
-            await PopulateChoicesAsync(e.GradeLevelId, e.SchoolYearId);
+            await PopulateChoicesAsync(true, e.GradeLevelId, e.SchoolYearId);
             return View(e);
         }
 
@@ -65,18 +60,54 @@ public class EnrollmentsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SetStatus(int id, EnrollmentStatus status)
+    public async Task<IActionResult> Details(int id)
+    {
+        var e = await _db.Enrollments
+            .Include(x => x.Student)
+            .Include(x => x.GradeLevel)
+            .Include(x => x.SchoolYear)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (e is null) return NotFound();
+        return View(e);
+    }
+
+    public async Task<IActionResult> Edit(int id)
     {
         var e = await _db.Enrollments.FindAsync(id);
-        if (e is not null && e.Status != status)
+        if (e is null) return NotFound();
+        await PopulateChoicesAsync(false, e.GradeLevelId, e.SchoolYearId);
+        return View(e);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    // Status is not bound — it's flow-driven (Unscheduled until the Registrar places the
+    // student in a section, then Scheduled via SectionController.AssignStudent/RemoveStudent).
+    public async Task<IActionResult> Edit(int id, [Bind("Id,StudentId,GradeLevelId,SchoolYearId,Notes")] Enrollment form)
+    {
+        var e = await _db.Enrollments.FindAsync(id);
+        if (e is null) return NotFound();
+
+        if (!ModelState.IsValid || await DuplicateAsync(form, id))
         {
-            e.Status = status;
-            await _db.SaveChangesAsync();
+            await PopulateChoicesAsync(false, form.GradeLevelId, form.SchoolYearId);
+            return View(form);
         }
+
+        e.StudentId = form.StudentId;
+        e.GradeLevelId = form.GradeLevelId;
+        e.SchoolYearId = form.SchoolYearId;
+        e.Notes = form.Notes;
+        await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
+    // ponytail: guarded against a student+year collision; per-year sequences would matter if the
+    // same student could hold multiple applications in a year — currently one is enforced.
+    private async Task<bool> DuplicateAsync(Enrollment form, int excludeId)
+        => await _db.Enrollments.AnyAsync(x => x.StudentId == form.StudentId
+            && x.SchoolYearId == form.SchoolYearId && x.Id != excludeId);
+
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
@@ -89,11 +120,14 @@ public class EnrollmentsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task PopulateChoicesAsync(int? gradeLevelId = null, int? schoolYearId = null)
+    private async Task PopulateChoicesAsync(bool filterUnenrolled = false, int? gradeLevelId = null, int? schoolYearId = null)
     {
+        IQueryable<Student> students = _db.Students;
+        if (filterUnenrolled)
+            students = students.Where(s => !_db.Enrollments.Any(e => e.StudentId == s.Id));
         ViewBag.Students = new SelectList(
-            await _db.Students.OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToListAsync(),
-            "Id", "FullName");
+            await students.OrderByDescending(s => s.Id).ToListAsync(),
+            "Id", "StudentNumber");
         ViewBag.GradeLevels = new SelectList(
             await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name", gradeLevelId);
         ViewBag.SchoolYears = new SelectList(

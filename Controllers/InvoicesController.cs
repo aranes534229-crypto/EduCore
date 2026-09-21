@@ -25,6 +25,7 @@ public class InvoicesController : Controller
             .Include(i => i.Payments)
             .OrderByDescending(i => i.IssuedDate)
             .ToListAsync();
+
         return View(list);
     }
 
@@ -55,6 +56,7 @@ public class InvoicesController : Controller
         }
 
         var invoice = new Invoice { StudentId = studentId, SchoolYearId = schoolYearId };
+        invoice.Number = await InvoiceNumbering.NextAsync(_db);
         invoice.Lines = fees.Select(f => new InvoiceLine { Description = f.Name, Amount = f.Amount }).ToList();
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync();
@@ -72,10 +74,26 @@ public class InvoicesController : Controller
         return inv is null ? NotFound() : View(inv);
     }
 
+    public async Task<IActionResult> Receipt(int id)
+    {
+        var payment = await _db.Payments
+            .Include(p => p.Invoice).ThenInclude(i => i.Student)
+            .Include(p => p.Invoice).ThenInclude(i => i.SchoolYear)
+            .Include(p => p.Invoice).ThenInclude(i => i.Lines)
+            .Include(p => p.Invoice).ThenInclude(i => i.Payments) // so Balance reflects all payments
+            .FirstOrDefaultAsync(p => p.Id == id);
+        return payment is null ? NotFound() : View("~/Views/Shared/Receipt.cshtml", payment);
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> AddPayment(int id, [Bind("Amount,Date,Method,Reference")] Payment p)
     {
-        var inv = await _db.Invoices.FindAsync(id);
+        // FindAsync won't fill Lines/Payments, so Balance (Total - Paid) would read 0.00
+        // and block every payment. Must Include both to compute the real remaining balance.
+        var inv = await _db.Invoices
+            .Include(i => i.Lines)
+            .Include(i => i.Payments)
+            .FirstOrDefaultAsync(i => i.Id == id);
         if (inv is null || p.Amount <= 0) return RedirectToAction(nameof(Details), new { id });
 
         // Block overpayment: a payment can't exceed the remaining balance, so

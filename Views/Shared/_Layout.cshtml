@@ -32,17 +32,23 @@
                                 <a class="nav-link text-dark" asp-controller="Students" asp-action="Index">Students</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Sections" asp-action="Index">Sections</a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Enrollments" asp-action="Index">Enrollments</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Inquiries" asp-action="Index">Inquiries</a>
                             </li>
                         }
+                        @if (User.IsInRole("Registrar"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Sections" asp-action="Index">Class Schedule</a>
+                            </li>
+                        }
                         @if (User.IsInRole("Admin"))
                         {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Sections" asp-action="Index">Sections</a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Faculty" asp-action="Index">Faculty</a>
                             </li>
@@ -56,7 +62,7 @@
                         @if (User.IsInRole("Admin") || User.IsInRole("Finance"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Invoices" asp-action="Index">Invoices</a>
+                                <a class="nav-link text-dark" asp-controller="Invoices" asp-action="Index">Tuition & Billing</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Expenses" asp-action="Index">Expenses</a>
@@ -74,10 +80,25 @@
                                 <a class="nav-link text-dark" asp-controller="Announcements" asp-action="Index">Announcements</a>
                             </li>
                         }
+                        @if (User.IsInRole("Parent"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Inquiries" asp-action="MyInquiries">My Inquiries</a>
+                            </li>
+                        }
                         @if (User.IsInRole("Admin") || User.IsInRole("Faculty"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Gradebook" asp-action="Index">Gradebook</a>
+                            </li>
+                        }
+                    @if (User.IsInRole("Finance"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Students" asp-action="Index">Students</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Messages" asp-action="Index">Messages</a>
                             </li>
                         }
                     @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance") || User.IsInRole("Faculty"))

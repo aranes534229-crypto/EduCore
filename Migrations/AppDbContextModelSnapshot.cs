@@ -17,7 +17,7 @@ namespace EduCore.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "8.0.17")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -161,11 +161,14 @@ namespace EduCore.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("InquiryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("StudentId")
+                    b.Property<int?>("StudentId")
                         .HasColumnType("int");
 
                     b.Property<string>("Type")
@@ -176,6 +179,8 @@ namespace EduCore.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InquiryId");
 
                     b.HasIndex("StudentId");
 
@@ -344,6 +349,10 @@ namespace EduCore.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -359,72 +368,84 @@ namespace EduCore.Migrations
                         new
                         {
                             Id = 1,
+                            Amount = 11500m,
                             Name = "Grade 1",
                             SortOrder = 1
                         },
                         new
                         {
                             Id = 2,
+                            Amount = 13000m,
                             Name = "Grade 2",
                             SortOrder = 2
                         },
                         new
                         {
                             Id = 3,
+                            Amount = 14500m,
                             Name = "Grade 3",
                             SortOrder = 3
                         },
                         new
                         {
                             Id = 4,
+                            Amount = 16000m,
                             Name = "Grade 4",
                             SortOrder = 4
                         },
                         new
                         {
                             Id = 5,
+                            Amount = 17500m,
                             Name = "Grade 5",
                             SortOrder = 5
                         },
                         new
                         {
                             Id = 6,
+                            Amount = 19000m,
                             Name = "Grade 6",
                             SortOrder = 6
                         },
                         new
                         {
                             Id = 7,
+                            Amount = 20500m,
                             Name = "Grade 7",
                             SortOrder = 7
                         },
                         new
                         {
                             Id = 8,
+                            Amount = 22000m,
                             Name = "Grade 8",
                             SortOrder = 8
                         },
                         new
                         {
                             Id = 9,
+                            Amount = 23500m,
                             Name = "Grade 9",
                             SortOrder = 9
                         },
                         new
                         {
                             Id = 10,
+                            Amount = 25000m,
                             Name = "Grade 10",
                             SortOrder = 10
                         },
                         new
                         {
                             Id = 11,
+                            Amount = 26500m,
                             Name = "Grade 11",
                             SortOrder = 11
                         },
                         new
                         {
                             Id = 12,
+                            Amount = 28000m,
                             Name = "Grade 12",
                             SortOrder = 12
                         });
@@ -438,8 +459,15 @@ namespace EduCore.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AssignedToId")
+                    b.Property<string>("Address")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AssignedToId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ContactEmail")
                         .IsRequired()
@@ -449,13 +477,33 @@ namespace EduCore.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ConvertedEnrollmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ConvertedStudentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FirstResponseAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("GradeLevelId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Notes")
+                    b.Property<string>("GuardianName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InternalNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
@@ -465,11 +513,57 @@ namespace EduCore.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedToId");
+
+                    b.HasIndex("ConvertedEnrollmentId");
+
+                    b.HasIndex("ConvertedStudentId");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("GradeLevelId");
 
                     b.ToTable("Inquiries");
+                });
+
+            modelBuilder.Entity("EduCore.Models.Entities.InquiryNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InquiryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StaffId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InquiryId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("InquiryNotes");
                 });
 
             modelBuilder.Entity("EduCore.Models.Entities.Invoice", b =>
@@ -482,6 +576,10 @@ namespace EduCore.Migrations
 
                     b.Property<DateTime>("IssuedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
 
                     b.Property<int>("SchoolYearId")
                         .HasColumnType("int");
@@ -637,6 +735,9 @@ namespace EduCore.Migrations
                     b.Property<int>("SchoolYearId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("SubmittedToFinanceAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AdviserId");
@@ -656,7 +757,7 @@ namespace EduCore.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("FacultyId")
+                    b.Property<int?>("FacultyId")
                         .HasColumnType("int");
 
                     b.Property<int>("SectionId")
@@ -717,6 +818,10 @@ namespace EduCore.Migrations
 
                     b.Property<int?>("SectionId")
                         .HasColumnType("int");
+
+                    b.Property<string>("StudentNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -904,11 +1009,15 @@ namespace EduCore.Migrations
 
             modelBuilder.Entity("EduCore.Models.Entities.Document", b =>
                 {
+                    b.HasOne("EduCore.Models.Entities.Inquiry", "Inquiry")
+                        .WithMany("Documents")
+                        .HasForeignKey("InquiryId");
+
                     b.HasOne("EduCore.Models.Entities.Student", "Student")
                         .WithMany("Documents")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("StudentId");
+
+                    b.Navigation("Inquiry");
 
                     b.Navigation("Student");
                 });
@@ -961,13 +1070,59 @@ namespace EduCore.Migrations
 
             modelBuilder.Entity("EduCore.Models.Entities.Inquiry", b =>
                 {
+                    b.HasOne("EduCore.Models.Entities.ApplicationUser", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EduCore.Models.Entities.Enrollment", "ConvertedEnrollment")
+                        .WithMany()
+                        .HasForeignKey("ConvertedEnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EduCore.Models.Entities.Student", "ConvertedStudent")
+                        .WithMany()
+                        .HasForeignKey("ConvertedStudentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EduCore.Models.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EduCore.Models.Entities.GradeLevel", "GradeLevel")
                         .WithMany()
                         .HasForeignKey("GradeLevelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("ConvertedEnrollment");
+
+                    b.Navigation("ConvertedStudent");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("GradeLevel");
+                });
+
+            modelBuilder.Entity("EduCore.Models.Entities.InquiryNote", b =>
+                {
+                    b.HasOne("EduCore.Models.Entities.Inquiry", "Inquiry")
+                        .WithMany("Thread")
+                        .HasForeignKey("InquiryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("GradeLevel");
+                    b.HasOne("EduCore.Models.Entities.ApplicationUser", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Inquiry");
+
+                    b.Navigation("Staff");
                 });
 
             modelBuilder.Entity("EduCore.Models.Entities.Invoice", b =>
@@ -1040,9 +1195,7 @@ namespace EduCore.Migrations
                 {
                     b.HasOne("EduCore.Models.Entities.Faculty", "Faculty")
                         .WithMany()
-                        .HasForeignKey("FacultyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FacultyId");
 
                     b.HasOne("EduCore.Models.Entities.Section", "Section")
                         .WithMany("Subjects")
@@ -1122,6 +1275,13 @@ namespace EduCore.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EduCore.Models.Entities.Inquiry", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Thread");
                 });
 
             modelBuilder.Entity("EduCore.Models.Entities.Invoice", b =>

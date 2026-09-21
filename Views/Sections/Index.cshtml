@@ -1,12 +1,16 @@
 @model IEnumerable<EduCore.Models.Entities.Section>
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "Sections";
+    var isRegistrar = User.IsInRole("Registrar");
+    ViewData["Title"] = isRegistrar ? "Class Schedule" : "Sections";
     ViewData["Active"] = "Sections";
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Sections</h1>
-    <a asp-action="Create" class="btn btn-primary">New Section</a>
+    <h1 class="h3 mb-0">@(isRegistrar ? "Class Schedule" : "Sections")</h1>
+    @if (!isRegistrar)
+    {
+        <a asp-action="Create" class="btn btn-primary">New Section</a>
+    }
 </div>
 
 <table class="ec-table">
@@ -15,6 +19,7 @@
             <th>Section</th>
             <th>Grade</th>
             <th>Adviser</th>
+            <th>Subjects</th>
             <th>Students</th>
             <th></th>
         </tr>
@@ -23,13 +28,33 @@
     @foreach (var s in Model)
     {
         <tr>
-            <td><a asp-action="Details" asp-route-id="@s.Id">@s.Name</a></td>
+            <td>
+                @s.Name
+                @if (s.IsSubmitted) { <span class="badge text-bg-success">Submitted</span> }
+            </td>
             <td>@s.GradeLevel.Name</td>
             <td>@(s.Adviser?.FullName ?? "—")</td>
+            <td>@s.Subjects.Count</td>
             <td>@s.Students.Count</td>
             <td class="text-end">
-                <a asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@s.Id"
-                   class="btn btn-sm btn-outline-secondary">Attendance</a>
+                @if (isRegistrar)
+                {
+                    <a asp-action="Schedule" asp-route-id="@s.Id" class="btn btn-sm btn-primary">Schedule</a>
+                }
+                @if (!isRegistrar)
+                {
+                    <a asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@s.Id"
+                       class="btn btn-sm btn-outline-secondary">Attendance</a>
+                }
+                <a asp-action="Details" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                @if (!isRegistrar)
+                {
+                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"
+                          onsubmit="return confirm('Remove @s.Name? Students keep their records.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                }
             </td>
         </tr>
     }

@@ -1,26 +1,28 @@
 @using EduCore.Models.Entities
 @model Message
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "New message";
 }
-<h2>New message</h2>
+<h1 class="h3 mb-4">New message</h1>
 
-<form asp-action="Create" method="post" class="col-md-6 col-12">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="mb-3">
-        <label class="form-label">Student</label>
-        <select name="studentId" asp-items="@(ViewBag.Students as SelectList)" class="form-select"></select>
-        <div class="form-text">
-            @if (ViewBag.IsFaculty) { <text>Sends to this child's linked parent account.</text> }
-            else if (ViewBag.IsParent) { <text>Sends to your child's adviser.</text> }
-            else { <text>Sends to this child's linked parent account.</text> }
+<form asp-action="Create" method="post">
+    <div class="ec-card p-4">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="col-md-6 col-12 mb-3">
+            <label class="form-label">Student</label>
+            <select name="studentId" asp-items="@(ViewBag.Students as SelectList)" class="form-select"></select>
+            <div class="form-text">
+                @if (ViewBag.IsFaculty) { <text>Sends to this child's linked parent account.</text> }
+                else if (ViewBag.IsParent) { <text>Sends to your child's adviser.</text> }
+                else { <text>Sends to this child's linked parent account.</text> }
+            </div>
+        </div>
+        <div class="col-md-6 col-12">
+            <label asp-for="Body" class="form-label">Message</label>
+            <textarea name="body" class="form-control" rows="4" required></textarea>
         </div>
     </div>
-    <div class="mb-3">
-        <label asp-for="Body" class="form-label">Message</label>
-        <textarea name="body" class="form-control" rows="4" required></textarea>
-        <span asp-validation-for="Body" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary">Send</button>
-    <a asp-action="Index" class="btn btn-link">Cancel</a>
+    <button type="submit" class="btn btn-primary mt-4">Send</button>
+    <a asp-action="Index" class="btn btn-link mt-4">Cancel</a>
 </form>

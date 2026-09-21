@@ -1,15 +1,17 @@
 @model IEnumerable<EduCore.Models.Entities.Invoice>
 @{
-    ViewData["Title"] = "Invoices";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Tuition & Billing";
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Invoices</h2>
+    <h2>Tuition & Billing</h2>
     <a asp-action="Create" class="btn btn-primary">New invoice</a>
 </div>
 
 <table class="table table-hover align-middle">
     <thead>
         <tr>
+            <th>Invoice #</th>
             <th>Student</th>
             <th>School year</th>
             <th>Issued</th>
@@ -23,6 +25,7 @@
     @foreach (var i in Model)
     {
         <tr>
+            <td>@(i.Number ?? "—")</td>
             <td>@i.Student.FullName</td>
             <td>@i.SchoolYear.Name</td>
             <td>@i.IssuedDate.ToString("yyyy-MM-dd")</td>

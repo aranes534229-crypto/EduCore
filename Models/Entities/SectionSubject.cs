@@ -14,8 +14,8 @@ public class SectionSubject
     public int SubjectId { get; set; }
     public Subject Subject { get; set; } = null!;
 
-    public int FacultyId { get; set; }
-    public Faculty Faculty { get; set; } = null!;
+    public int? FacultyId { get; set; }
+    public Faculty? Faculty { get; set; }
 
     public ICollection<Grade> Grades { get; set; } = new List<Grade>();
 }

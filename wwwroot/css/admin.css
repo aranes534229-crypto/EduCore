@@ -6,7 +6,7 @@
   --ec-card: #FFFFFF;
   --ec-card-dark: #1B1A19;
   --ec-ink: #2B2A29;
-  --ec-ink-dim: #6B6A69;
+  --ec-ink-dim: #545250;
   --ec-ink-dark: #EAE8E6;
   --ec-ink-dim-dark: #B8B6B5;
   --ec-accent: #3D5B8C;
@@ -146,6 +146,16 @@ body { margin: 0; background: var(--ec-paper); color: var(--ec-ink); }
   background: var(--ec-card); border: 1px solid var(--ec-line);
   border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
+
+/* Muted body text follows the theme's dim ink (light + dark), not Bootstrap's
+   --bs-secondary-color, which stays a light-theme gray and is near-invisible on
+   dark cards. Same value ec-table headers already use. */
+.text-body-secondary { color: var(--ec-ink-dim); }
+
+/* Detail-form block headers — pin uppercase section labels to solid ink so they
+   read clearly on cards in both themes. */
+.ec-card h6.text-uppercase.fw-semibold { color: var(--ec-ink); }
+.ec-card h6.text-uppercase.text-body-secondary { color: var(--ec-ink); }
 
 /* --- Tables --- */
 .ec-table { width: 100%; border-collapse: separate; border-spacing: 0; }

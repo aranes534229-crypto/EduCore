@@ -8,6 +8,10 @@ public class Student
 {
     public int Id { get; set; }
 
+    /// <summary>Admission ID (e.g. "2026-0143") assigned when a lead is converted. Kept as a
+    /// display string — the DB int Id stays the key, this is the human-readable number.</summary>
+    public string StudentNumber { get; set; } = "";
+
     [Required]
     public string FirstName { get; set; } = "";
 

@@ -8,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Controllers;
 
-/// <summary>Module 5 — sections + who teaches/attends them. Admin and Registrar manage
-/// the roster and teacher assignments; grade/attendance entry lives in GradebookController.</summary>
+/// <summary>Module 5 — sections + who teaches/attends them. Section setup (create sections,
+/// advisers, subject/teacher assignment) is Admin-only; Registrar sees the same controller as
+/// "Class Schedule" and may only assign/remove students in a section. Grade/attendance entry
+/// lives in GradebookController.</summary>
 [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
 public class SectionsController : Controller
 {
@@ -22,6 +24,7 @@ public class SectionsController : Controller
         var list = await _db.Sections
             .Include(s => s.GradeLevel)
             .Include(s => s.Adviser)
+            .Include(s => s.Subjects)
             .Include(s => s.Students)
             .OrderBy(s => s.GradeLevel.SortOrder)
             .ThenBy(s => s.Name)
@@ -29,33 +32,84 @@ public class SectionsController : Controller
         return View(list);
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Create()
     {
         await PopulateChoicesAsync();
+        await PopulateSubjectsAsync();
         return View(new Section());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Section section)
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> Create(Section section, int[]? subjectIds)
     {
         if (!ModelState.IsValid)
         {
             await PopulateChoicesAsync(section.GradeLevelId);
-            return View(section);
-        }
-
-        // One active section per grade level for the year keeps a student's grade = their section's grade.
-        if (await _db.Sections.AnyAsync(s => s.GradeLevelId == section.GradeLevelId && s.SchoolYearId == section.SchoolYearId))
-            ModelState.AddModelError(nameof(Section.Name), "A section already exists for this grade level and school year.");
-
-        if (!ModelState.IsValid)
-        {
-            await PopulateChoicesAsync(section.GradeLevelId);
+            await PopulateSubjectsAsync();
             return View(section);
         }
 
         _db.Sections.Add(section);
+        await _db.SaveChangesAsync();
+        await SaveSectionSubjectsAsync(section.Id, subjectIds);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var section = await LoadSectionForManageAsync(id);
+        if (section is null) return NotFound();
+
+        await PopulateEditChoicesAsync(section);
+        return View(section);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<IActionResult> Edit(int id, Section section, int[]? subjectIds,
+        Dictionary<int, int?>? teacherIds)
+    {
+        if (id != section.Id) return BadRequest();
+
+        var existing = await LoadSectionForManageAsync(id);
+        if (existing is null) return NotFound();
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateEditChoicesAsync(section, subjectIds);
+            section.Subjects = existing.Subjects;
+            section.Students = existing.Students;
+            return View(section);
+        }
+
+        existing.Name = section.Name;
+        existing.GradeLevelId = section.GradeLevelId;
+        existing.SchoolYearId = section.SchoolYearId;
+        existing.AdviserId = section.AdviserId;
+
+        // Per-subject teacher (optional); the <option value=""> posts as null / untouched subject absent.
+        int? Teacher(int sid) => teacherIds != null && teacherIds.TryGetValue(sid, out var f) ? f : null;
+
+        // Diff the join table: drop unselected, set teacher on kept, add newly selected.
+        var wanted = (subjectIds ?? Array.Empty<int>()).Distinct().ToHashSet();
+        foreach (var ss in existing.Subjects.ToList())
+        {
+            if (!wanted.Contains(ss.SubjectId))
+                _db.SectionSubjects.Remove(ss);                          // grades on removed subjects cascade
+            else
+            {
+                ss.FacultyId = Teacher(ss.SubjectId);
+                wanted.Remove(ss.SubjectId);
+            }
+        }
+        foreach (var add in wanted)
+            _db.SectionSubjects.Add(new SectionSubject { SectionId = id, SubjectId = add, FacultyId = Teacher(add) });
+
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
@@ -72,24 +126,7 @@ public class SectionsController : Controller
             .FirstOrDefaultAsync(s => s.Id == id);
         if (section is null) return NotFound();
 
-        // Subject picker shows only subjects not already meeting in this section.
-        var assigned = section.Subjects.Select(ss => ss.SubjectId).ToHashSet();
-        ViewBag.Subjects = new SelectList(
-            await _db.Subjects.Where(x => !assigned.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync(),
-            "Id", "Name");
-        ViewBag.Faculty = new SelectList(
-            await _db.Faculty.Where(f => f.IsActive).OrderBy(f => f.LastName).ToListAsync(),
-            "Id", "FullName");
-
-        // Assignable students: anyone not yet placed in a section.
-        // ponytail: student grade = their section's grade level (no GradeLevelId on Student);
-        // grade-at-application is captured in Module 2 Enrollment, which places via section.
-        ViewBag.Pool = await _db.Students
-            .Where(st => st.SectionId == null)
-            .OrderBy(st => st.LastName)
-            .ToListAsync();
-
-        return View(section);
+        return View(section);   // read-only view (management lives on Edit)
     }
 
     [HttpPost]
@@ -98,12 +135,15 @@ public class SectionsController : Controller
     {
         var student = await _db.Students.FindAsync(studentId);
         var section = await _db.Sections.FindAsync(id);
-        if (student is not null && section is not null && student.SectionId is null)
+        // ponytail: once submitted to Finance the roster is billed as-is, so lock it against changes.
+        if (student is not null && section is not null && !section.IsSubmitted && student.SectionId is null
+            && CanSchedule(student, section))
         {
             student.SectionId = id;
+            await SetEnrollmentStatusAsync(student.Id, section, EnrollmentStatus.Scheduled);
             await _db.SaveChangesAsync();
         }
-        return RedirectToAction(nameof(Details), new { id });
+        return Back(id);
     }
 
     [HttpPost]
@@ -111,46 +151,103 @@ public class SectionsController : Controller
     public async Task<IActionResult> RemoveStudent(int id, int studentId)
     {
         var student = await _db.Students.FindAsync(studentId);
-        if (student is not null && student.SectionId == id)
+        var section = await _db.Sections.FindAsync(id);
+        if (student is not null && section is not null && !section.IsSubmitted && student.SectionId == id)
         {
             student.SectionId = null;
+            await SetEnrollmentStatusAsync(student.Id, section, EnrollmentStatus.Unscheduled);
             await _db.SaveChangesAsync();
         }
-        return RedirectToAction(nameof(Details), new { id });
+        return Back(id);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddSubject(int id, int subjectId, int facultyId)
+    /// <summary>Placement drives the enrollment lifecycle: placing a student in a section makes it
+    /// Scheduled; removing them returns it to Unscheduled.</summary>
+    private async Task SetEnrollmentStatusAsync(int studentId, Section section, EnrollmentStatus status)
     {
-        if (!await _db.SectionSubjects.AnyAsync(ss => ss.SectionId == id && ss.SubjectId == subjectId))
+        var enrollment = await _db.Enrollments.FirstOrDefaultAsync(e => e.StudentId == studentId
+            && e.SchoolYearId == section.SchoolYearId && e.GradeLevelId == section.GradeLevelId);
+        if (enrollment is not null) enrollment.Status = status;
+
+        // Auto-billing: once a student is Scheduled, their grade's tuition invoice appears
+        // automatically. Runs only on the assign path (Scheduled); guarded so a student is never
+        // billed twice for the same school year even if they're re-assigned to another section.
+        if (status is EnrollmentStatus.Scheduled && enrollment is not null
+            && !await _db.Invoices.AnyAsync(i => i.StudentId == studentId && i.SchoolYearId == section.SchoolYearId))
         {
-            _db.SectionSubjects.Add(new SectionSubject
+            var grade = await _db.GradeLevels.FindAsync(section.GradeLevelId);
+            if (grade is not null && grade.Amount > 0)
             {
-                SectionId = id,
-                SubjectId = subjectId,
-                FacultyId = facultyId
-            });
-            await _db.SaveChangesAsync();
+                _db.Invoices.Add(new Invoice
+                {
+                    StudentId = studentId,
+                    SchoolYearId = section.SchoolYearId,
+                    IssuedDate = DateTime.Today,
+                    Number = await InvoiceNumbering.NextAsync(_db),
+                    Lines = new List<InvoiceLine>
+                    {
+                        new InvoiceLine { Description = $"{grade.Name} Tuition", Amount = grade.Amount }
+                    }
+                });
+                await _db.SaveChangesAsync();
+            }
         }
-        return RedirectToAction(nameof(Details), new { id });
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RemoveSubject(int id, int sectionSubjectId)
+    /// <summary>Registrar may only place students whose enrollment for the section's grade+year is
+    /// Unscheduled (enrolled but not yet placed). Admin keeps full placement control.</summary>
+    private bool CanSchedule(Student student, Section section)
     {
-        var ss = await _db.SectionSubjects.FindAsync(sectionSubjectId);
-        if (ss is not null && ss.SectionId == id)
-        {
-            _db.SectionSubjects.Remove(ss);
-            await _db.SaveChangesAsync();   // grades on this subject are removed with it (cascade)
-        }
-        return RedirectToAction(nameof(Details), new { id });
+        if (User.IsInRole(AppRoles.Admin)) return true;
+        return _db.Enrollments.Any(e => e.StudentId == student.Id
+            && e.SchoolYearId == section.SchoolYearId
+            && e.GradeLevelId == section.GradeLevelId
+            && e.Status == EnrollmentStatus.Unscheduled);
+    }
+
+    // Redirect back to the page that owns the student roster: Admin edits, Registrar schedules.
+    private IActionResult Back(int id) =>
+        User.IsInRole(AppRoles.Admin)
+            ? RedirectToAction(nameof(Edit), new { id })
+            : RedirectToAction(nameof(Schedule), new { id });
+
+    /// <summary>Registrar's scheduling screen: assign unscheduled-enrolled students to the section,
+    /// then hand the roster to Finance.</summary>
+    public async Task<IActionResult> Schedule(int id)
+    {
+        var section = await _db.Sections
+            .Include(s => s.GradeLevel)
+            .Include(s => s.SchoolYear)
+            .Include(s => s.Students)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        if (section is null) return NotFound();
+
+        ViewBag.Pool = await _db.Students
+            .Where(st => st.SectionId == null)
+            .Where(st => _db.Enrollments.Any(e => e.StudentId == st.Id
+                && e.SchoolYearId == section.SchoolYearId
+                && e.GradeLevelId == section.GradeLevelId
+                && e.Status == EnrollmentStatus.Unscheduled))
+            .OrderBy(st => st.LastName)
+            .ThenBy(st => st.FirstName)
+            .ToListAsync();
+        return View(section);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitToFinance(int id)
+    {
+        var section = await _db.Sections.FindAsync(id);
+        if (section is not null && !section.IsSubmitted)
+            section.SubmittedToFinanceAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Schedule), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
         var section = await _db.Sections.FindAsync(id);
@@ -162,6 +259,25 @@ public class SectionsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    private async Task<Section?> LoadSectionForManageAsync(int id) =>
+        await _db.Sections
+            .Include(s => s.Subjects).ThenInclude(ss => ss.Faculty)
+            .Include(s => s.Students)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+    private async Task PopulateEditChoicesAsync(Section section, int[]? submittedSubjectIds = null)
+    {
+        await PopulateChoicesAsync(section.GradeLevelId, section.SchoolYearId);
+        await PopulateSubjectsAsync(submittedSubjectIds ?? section.Subjects.Select(ss => ss.SubjectId));
+        ViewBag.Teachers = await _db.Faculty.Where(f => f.IsActive).OrderBy(f => f.LastName).ToListAsync();
+        // ponytail: student grade = their section's grade level (no GradeLevelId on Student);
+        // assignable = anyone not yet placed in a section.
+        ViewBag.Pool = await _db.Students
+            .Where(st => st.SectionId == null)
+            .OrderBy(st => st.LastName)
+            .ToListAsync();
+    }
+
     private async Task PopulateChoicesAsync(int? gradeLevelId = null, int? schoolYearId = null)
     {
         ViewBag.GradeLevels = new SelectList(
@@ -170,5 +286,19 @@ public class SectionsController : Controller
             await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name", schoolYearId);
         ViewBag.Advisers = new SelectList(
             await _db.Faculty.Where(f => f.IsActive).OrderBy(f => f.LastName).ToListAsync(), "Id", "FullName");
+    }
+
+    private async Task PopulateSubjectsAsync(IEnumerable<int>? selected = null)
+    {
+        ViewBag.Subjects = await _db.Subjects.OrderBy(x => x.Name).ToListAsync();
+        ViewBag.SelectedSubjectIds = (selected ?? Enumerable.Empty<int>()).ToHashSet();
+    }
+
+    private async Task SaveSectionSubjectsAsync(int sectionId, int[]? subjectIds)
+    {
+        if (subjectIds is null) return;
+        foreach (var id in subjectIds.Distinct())
+            _db.SectionSubjects.Add(new SectionSubject { SectionId = sectionId, SubjectId = id });
+        await _db.SaveChangesAsync();
     }
 }

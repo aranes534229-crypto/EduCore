@@ -2,60 +2,67 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model IEnumerable<Inquiry>
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Inquiries";
     var names = (Dictionary<string, string>)ViewBag.Names;
-    var assignees = (IEnumerable<SelectListItem>)ViewBag.Assignees;
 }
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Inquiries</h2>
-    <a asp-action="Create" class="btn btn-primary">New inquiry</a>
+<div class="mb-3">
+    <h1 class="h3 mb-0">Inquiries</h1>
 </div>
 
-<table class="table table-sm align-middle">
+<table class="ec-table">
     <thead>
-        <tr><th>Student</th><th>Applying for</th><th>Contact</th><th>Date</th><th>Status</th><th>Assigned to</th><th class="text-end">Actions</th></tr>
+        <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Applying for</th>
+            <th>Contact</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Assigned to</th>
+            <th></th>
+        </tr>
     </thead>
     <tbody>
     @foreach (var i in Model)
     {
         <tr>
+            <td>@i.Id</td>
             <td class="fw-semibold">@i.StudentName</td>
             <td>@i.GradeLevel.Name</td>
-            <td>@i.ContactEmail<br /><span class="text-body-secondary small">@(i.Notes ?? "")</span></td>
+            <td>
+                @i.ContactEmail<br />
+                <span class="small text-break">@(i.InternalNotes ?? "")</span>
+                @* parent origin is tracked via CreatedByUserId; no visual badge *@
+            </td>
             <td>@i.DateCreated.ToString("MMM d")</td>
             <td><span class="badge @i.StatusClass">@i.Status</span></td>
             <td>
-                @if (i.AssignedToId != null && names.TryGetValue(i.AssignedToId, out var n)) { <div class="small">@n</div> }
-                <form asp-action="Assign" asp-route-id="@i.Id" method="post" class="d-flex gap-1 mt-1">
-                    <select name="assignedToId" class="form-select form-select-sm" style="min-width: 8rem;">
-                        <option value="">—</option>
-                        @foreach (var opt in assignees)
-                        {
-                            var sel = i.AssignedToId == opt.Value;
-                            <option value="@opt.Value" selected="@sel">@opt.Text</option>
-                        }
-                    </select>
-                    <button type="submit" class="btn btn-sm btn-outline-primary">Set</button>
-                </form>
+                @if (i.AssignedToId != null && names.TryGetValue(i.AssignedToId, out var assignedName))
+                {
+                    <div class="small">@assignedName</div>
+                }
             </td>
-            <td class="text-end">
-                @if (i.Status == InquiryStatus.New)
+            <td class="text-end text-nowrap">
+                <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                @if (i.ConvertedStudentId == null && i.Status != InquiryStatus.Rejected)
                 {
-                    <form asp-action="SetStatus" asp-route-id="@i.Id" method="post" class="d-inline">
-                        <button type="submit" name="status" value="InProgress" class="btn btn-sm btn-primary">Start</button>
+                    <form asp-action="Convert" asp-route-id="@i.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
                     </form>
+                    <details class="d-inline">
+                        <summary class="btn btn-sm btn-outline-danger">Reject</summary>
+                        <div class="ec-card p-2 mt-1 text-start" style="min-width: 18rem;">
+                            <form asp-action="Reject" asp-route-id="@i.Id" method="post">
+                                <textarea name="reason" class="form-control form-control-sm" required
+                                          placeholder="Reason for rejection"></textarea>
+                                <button type="submit" class="btn btn-sm btn-danger mt-1">Confirm reject</button>
+                            </form>
+                        </div>
+                    </details>
                 }
-                @if (i.Status == InquiryStatus.InProgress)
+                @if (User.IsInRole("Admin"))
                 {
-                    <form asp-action="SetStatus" asp-route-id="@i.Id" method="post" class="d-inline">
-                        <button type="submit" name="status" value="Converted" class="btn btn-sm btn-success">Convert</button>
-                    </form>
-                }
-                @if (i.Status == InquiryStatus.New || i.Status == InquiryStatus.InProgress)
-                {
-                    <form asp-action="SetStatus" asp-route-id="@i.Id" method="post" class="d-inline">
-                        <button type="submit" name="status" value="Closed" class="btn btn-sm btn-outline-secondary">Close</button>
-                    </form>
                     <form asp-action="Delete" asp-route-id="@i.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this inquiry?');">
                         <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>

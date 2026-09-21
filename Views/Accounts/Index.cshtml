@@ -1,0 +1,78 @@
+@using EduCore.Models.Constants
+@model IEnumerable<EduCore.ViewModels.UserListItemVM>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Accounts";
+}
+@{
+    var currentUserId = ViewData["CurrentUserId"] as string;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Accounts</h1>
+    <a asp-action="Create" class="btn btn-primary">Add Account</a>
+</div>
+
+@if (TempData["Info"] is string info)
+{
+    <div class="alert alert-success mb-3">@info</div>
+}
+
+<table class="ec-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var u in Model)
+{
+        <tr>
+            <td>@u.DisplayName</td>
+            <td>@u.Email</td>
+            <td>
+                @if (u.Roles.Any())
+                {
+                    var ordered = u.Roles.OrderBy(r => Array.IndexOf(AppRoles.All, r)).ThenBy(r => r).ToArray();
+                    <span class="badge text-bg-primary">@string.Join(", ", ordered)</span>
+                }
+                <span class="text-body-secondary"></span>
+            </td>
+            <td>
+                @if (u.IsLocked)
+                {
+                    <span class="badge text-bg-danger">Locked</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-success">Active</span>
+                }
+            </td>
+            <td class="text-end">
+                <a asp-action="ResetPassword" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Reset Password</a>
+                @if (u.Id == currentUserId)
+                {
+                    <span class="text-body-secondary" title="Can't lock your own account">(locked)</span>
+                }
+                else
+                {
+                    <form asp-action="ToggleLock" asp-route-id="@u.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-@(u.IsLocked ? "outline-success" : "outline-warning")">
+                            @(u.IsLocked ? "Unlock" : "Lock")
+                        </button>
+                    </form>
+                }
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+@if (!Model.Any())
+{
+    <p class="text-body-secondary">No accounts yet.</p>
+}

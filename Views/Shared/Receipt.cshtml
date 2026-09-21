@@ -1,0 +1,67 @@
+@model EduCore.Models.Entities.Payment
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Receipt #{Model.Id}";
+}
+<div class="ec-card p-4 col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0" id="receipt-title">Receipt #REC-@Model.Id</h1>
+        <a onclick="window.print()" class="btn btn-sm btn-outline-secondary">Print</a>
+    </div>
+
+    <div class="row g-3 mb-3 small text-body-secondary">
+        <div class="col-sm-6">
+            <strong>EduCore School</strong><br />
+            Receipt date: @DateTime.Today.ToString("yyyy-MM-dd")
+        </div>
+        <div class="col-sm-6 text-sm-end">
+            Invoice: @(Model.Invoice?.Number ?? "—")<br />
+            School year: @(Model.Invoice?.SchoolYear?.Name ?? "—")
+        </div>
+    </div>
+
+    <div class="mb-2"><strong>Student:</strong> @(Model.Invoice?.Student?.FullName ?? "—")</div>
+
+    <h5 class="mt-3 mb-1">Charges</h5>
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr><th>Description</th><th class="text-end">Amount</th></tr>
+        </thead>
+        <tbody>
+            @if (Model.Invoice?.Lines is { Count: > 0 } lines)
+            {
+                foreach (var l in lines)
+                {
+                    <tr><td>@l.Description</td><td class="text-end">@l.Amount.ToString("N2")</td></tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="2" class="text-body-secondary fst-italic">No charges.</td></tr>
+            }
+        </tbody>
+    </table>
+
+    <h5 class="mt-3 mb-1">Payment</h5>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr><th>Date</th><td>@Model.Date.ToString("yyyy-MM-dd")</td></tr>
+            <tr><th>Method</th><td>@Model.Method</td></tr>
+            <tr><th>Reference</th><td>@(Model.Reference ?? "—")</td></tr>
+        </tbody>
+    </table>
+
+    <div class="text-end mt-3">
+        <table class="table table-sm table-borderless mb-0">
+            <tr><td class="text-end fw-semibold">Invoice total:</td><td class="text-end" style="width:120px">@(Model.Invoice?.Total.ToString("N2") ?? "—")</td></tr>
+            <tr><td class="text-end fw-semibold">Amount paid:</td><td class="text-end text-success fw-bold">@Model.Amount.ToString("N2")</td></tr>
+            <tr><td class="text-end fw-semibold border-top pt-1">Balance:</td><td class="text-end fw-bold border-top pt-1">@(Model.Invoice?.Balance.ToString("N2") ?? "—")</td></tr>
+        </table>
+    </div>
+
+    <div class="mt-4 pt-3 border-top small text-body-secondary">
+        Authorized — EduCore Finance
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

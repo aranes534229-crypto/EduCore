@@ -1,0 +1,78 @@
+@using EduCore.Models.Entities
+@model Inquiry
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Apply for enrollment";
+}
+<h1 class="h3 mb-4">Apply for enrollment</h1>
+
+<form asp-action="Submit" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <p class="text-body-secondary small">
+        Fill out the child's information and the enrollment application below, then upload the
+        required documents. A registrar will review and approve it.
+    </p>
+
+    <div class="ec-card p-4">
+        <h6 class="text-uppercase text-body-secondary mb-3">Child's information</h6>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="StudentName" class="form-label">Child's full name</label>
+                <input asp-for="StudentName" class="form-control" />
+                <span asp-validation-for="StudentName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="GradeLevelId" class="form-label">Grade level</label>
+                <select asp-for="GradeLevelId" asp-items="ViewBag.GradeLevels" class="form-select"></select>
+                <span asp-validation-for="GradeLevelId" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="BirthDate" class="form-label">Birth date</label>
+                <input asp-for="BirthDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Address" class="form-label">Home address</label>
+                <input asp-for="Address" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="GuardianName" class="form-label">Parent/guardian name</label>
+                <input asp-for="GuardianName" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ContactPhone" class="form-label">Phone number (for follow-up)</label>
+                <input asp-for="ContactPhone" class="form-control" />
+                <span asp-validation-for="ContactPhone" class="text-danger"></span>
+            </div>
+        </div>
+
+        <h6 class="text-uppercase text-body-secondary mt-4 mb-3">Documents</h6>
+        <p class="text-body-secondary small">Birth certificate, most recent report card, and a 2×2 photo (.jpg, .png, or .pdf).</p>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Birth certificate</label>
+                <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Most recent report card</label>
+                <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">2×2 photo</label>
+                <input type="file" name="uploads" class="form-control" accept=".jpg,.jpeg,.png,.pdf" />
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-4">Submit application</button>
+    <a asp-action="MyInquiries" class="btn btn-link mt-4">Cancel</a>
+</form>
+
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Info"]</div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

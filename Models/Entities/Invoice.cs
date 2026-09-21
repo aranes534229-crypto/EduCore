@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using EduCore.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Models.Entities;
 
@@ -7,6 +9,9 @@ namespace EduCore.Models.Entities;
 public class Invoice
 {
     public int Id { get; set; }
+
+    [MaxLength(16)]
+    public string? Number { get; set; }
 
     public int StudentId { get; set; }
     public Student Student { get; set; } = null!;
@@ -23,4 +28,15 @@ public class Invoice
     public decimal Total => Lines.Sum(l => l.Amount);
     public decimal Paid => Payments.Sum(p => p.Amount);
     public decimal Balance => Total - Paid;
+}
+
+/// <summary>Sequential invoice-number generator, e.g. "INV-0007". Derived from the max row id so
+/// it always advances and never reuses a number, even after deletions.</summary>
+public static class InvoiceNumbering
+{
+    public static async Task<string> NextAsync(AppDbContext db)
+    {
+        var last = await db.Invoices.MaxAsync(i => (int?)i.Id) ?? 0;
+        return $"INV-{last + 1:D4}";
+    }
 }

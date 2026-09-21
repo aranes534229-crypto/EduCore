@@ -1,11 +1,12 @@
 @model EduCore.Models.Entities.Enrollment
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "New application";
+    ViewData["Title"] = "New enrollment";
 }
-<h1 class="h3 mb-4">New application</h1>
+<h1 class="h3 mb-4">New enrollment</h1>
 
 <form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="ec-card p-4">
         <div class="col-md-6 col-12 mb-3">
             <label asp-for="StudentId" class="form-label">Student</label>
@@ -31,7 +32,7 @@
             <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
         </div>
     </div>
-    <button type="submit" class="btn btn-primary mt-4">Submit application</button>
+    <button type="submit" class="btn btn-primary mt-4">Submit Enrollment</button>
     <a asp-action="Index" class="btn btn-link mt-4">Cancel</a>
 </form>
 

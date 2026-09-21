@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in - EduCore</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css?v=PI8n5gCcz9cQqQXm3PEtDuPG8qx9oFsFctPg0S5zb8g" />
+    <link rel="stylesheet" href="/css/site.css?v=j6fhJSuuyLpOSLuPJU0TsDV0iNjor5S3rDnvxJrt4bg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,opsz,wght@0,36..84,400;1,36..84,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Warm academic palette */
+            --ec-paper: #F7F5F1;
+            --ec-paper-dark: #121110;
+            --ec-card: #FFFFFF;
+            --ec-card-dark: #1B1A19;
+            --ec-ink: #2B2A29;
+            --ec-ink-dim: #6B6A69;
+            --ec-ink-dark: #EAE8E6;
+            --ec-ink-dim-dark: #B8B6B5;
+            --ec-accent: #3D5B8C;         /* school blue */
+            --ec-accent-hover: #324b70;
+            --ec-role-admin: #7B5EA6;
+            --ec-role-faculty: #4A6FA6;
+            --ec-role-finance: #D97754;
+            --ec-role-registrar: #5B9C68;
+            --ec-line: #E2DED9;
+            --ec-line-dark: #3A3836;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ec-paper: #121110;
+                --ec-card: #1B1A19;
+                --ec-ink: #EAE8E6;
+                --ec-ink-dim: #B8B6B5;
+                --ec-line: #3A3836;
+            }
+        }
+        [data-theme="light"] { --ec-paper:#F7F5F1; --ec-card:#FFFFFF; --ec-ink:#2B2A29; --ec-ink-dim:#6B6A69; --ec-line:#E2DED9; }
+        [data-theme="dark"]   { --ec-paper:#121110; --ec-card:#1B1A19; --ec-ink:#EAE8E6; --ec-ink-dim:#B8B6B5; --ec-line:#3A3836; }
+
+        * { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+        .font-display { font-family: "Instrument Serif", Georgia, serif; }
+
+        html,body { height:100%; }
+        body {
+            margin:0; background:var(--ec-paper); color:var(--ec-ink);
+            display:flex; align-items:center; justify-content:center;
+            min-height:100vh;
+        }
+        .login-card {
+            background:var(--ec-card); border:1px solid var(--ec-line);
+            border-radius:14px; padding:2.5rem 2rem; width:100%; max-width:384px;
+            box-shadow:0 1px 3px rgba(0,0,0,.05);
+        }
+        .login-card:focus-within { outline:2px solid var(--ec-accent); outline-offset:2px; }
+
+        .mark {
+            width:44px; height:44px; margin:0 auto 1rem;
+            display:flex; align-items:center; justify-content:center;
+            border-radius:10px; background:var(--ec-accent); color:#fff;
+        }
+        .wordmark { font-family:"Instrument Serif",Georgia,serif; font-size:1.625rem; font-weight:400; letter-spacing:-.02em; text-align:center; margin:0; }
+        .wordmark .dot { color:var(--ec-accent); }
+        .tagline { text-align:center; color:var(--ec-ink-dim); font-size:.875rem; margin:0 auto 1.25rem; max-width:20rem; }
+        .role-sub { text-align:center; font-size:.825rem; font-weight:500; margin-bottom:1.5rem; letter-spacing:.02em; }
+        .role-sub .badge-role {
+            display:inline-block; padding:.125rem .55rem; border-radius:999px;
+            font-size:.75rem; font-weight:600; color:#fff; vertical-align:middle; margin-left:.4rem;
+        }
+        .role-admin   { background:var(--ec-role-admin); }
+        .role-faculty { background:var(--ec-role-faculty); }
+        .role-finance { background:var(--ec-role-finance); }
+        .role-registrar { background:var(--ec-role-registrar); }
+        .role-parent  { background:#6B7280; }
+        .role-default { background:var(--ec-accent); }
+
+        .form-control:focus { border-color:var(--ec-accent); box-shadow:0 0 0 .18rem rgba(61,91,140,.15); }
+        .form-label { font-size:.8rem; font-weight:600; color:var(--ec-ink-dim); letter-spacing:.03em; }
+.input-group-text { background:transparent; border:none; color:var(--ec-ink-dim); padding:0 .5rem; }
+        .pw-toggle-wrap { position:relative; }
+        .pw-toggle-wrap input { padding-right:2.6rem; }
+        .toggle-pw { position:absolute; right:.5rem; top:50%; transform:translateY(-50%); padding:.2rem .25rem; font-size:.8rem; font-weight:600; color:var(--ec-ink-dim); }
+        .btn-signin {
+            background:var(--ec-accent); color:#fff; border:none; font-weight:600;
+            padding:.7rem 1.1rem; border-radius:10px; width:100%; transition:background .15s;
+        }
+        .btn-signin:hover { background:var(--ec-accent-hover); }
+        .divider { position:relative; text-align:center; margin:1.5rem 0; color:var(--ec-ink-dim); font-size:.8rem; }
+        .divider::before { content:""; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--ec-line); }
+        .divider span { background:var(--ec-card); padding:0 .7rem; position:relative; }
+        .muted { color:var(--ec-ink-dim); font-size:.825rem; }
+        .link { color:var(--ec-accent); font-weight:500; }
+        .form-check-label { font-size:.85rem; color:var(--ec-ink); }
+        @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="login-card" role="main" aria-labelledby="wordmark">
+            <div class="mark" aria-hidden="true">
+                <span class="font-display" style="font-size:1.4rem;">E</span>
+            </div>
+            <h1 id="wordmark" class="wordmark">Edu<span class="dot">Core</span></h1>
+            <p class="tagline">Tuition, enrollment, grades, and accounting for private schools.</p>
+
+            <!-- Ponytail: Register redirects here with a TempData flash. Render it so the handoff is visible. -->
+
+            <form method="post" autocomplete="on" action="/Account/Login">
+                <input type="hidden" id="ReturnUrl" name="ReturnUrl" value="/" />
+                <div class="mb-3">
+                    <label class="form-label" for="Email">Email address</label>
+                    <input class="form-control" placeholder="you@school.edu" autocomplete="username" type="email" data-val="true" data-val-email="The Email field is not a valid e-mail address." data-val-required="The Email field is required." id="Email" name="Email" value="" />
+                    <span class="text-danger small field-validation-valid" data-valmsg-for="Email" data-valmsg-replace="true"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="Password">Password</label>
+                    <div class="pw-toggle-wrap">
+                        <input class="form-control" type="password" placeholder="••••••••" autocomplete="current-password" data-val="true" data-val-required="The Password field is required." id="Password" name="Password" />
+                        <span class="toggle-pw" style="cursor:pointer" tabindex="0" role="button" aria-label="Show password">
+                            <span class="d-none" data-hide>Hide</span><span data-show>Show</span>
+                        </span>
+                    </div>
+                    <span class="text-danger small field-validation-valid" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" data-val="true" data-val-required="The RememberMe field is required." id="RememberMe" name="RememberMe" value="true" />
+                        <label class="form-check-label" for="RememberMe"> Remember Me</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-signin">Sign in</button>
+
+                <div class="divider"><span>Forgot password?</span></div>
+                <p class="muted text-center mb-0">
+                    Contact your administrator to reset your credentials.
+                </p>
+
+                <div class="divider"><span>Or</span></div>
+                <p class="muted text-center mb-0">
+                    Don't have an account? <a class="link" href="/Account/Register">Create one</a>
+                </p>
+            <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_kfgnZ23DC6NMG81LLznMBtjBGQwwIwj_KKofRVbsXBbGHHz46ZiagERoonAVp9KnMpI_gmEeFpCi8Wj59FdG-c165EBYuPu3dabrV2AV3wlMxI4NDy7Ev0DtufK9xJlZE" /><input name="RememberMe" type="hidden" value="false" /></form>
+        </div>
+    </main>
+
+    <script>
+        (function () {
+            var pw = document.querySelector('input[name="Password"]');
+            var toggles = document.querySelectorAll('.toggle-pw');
+            toggles.forEach(function (t) {
+                t.addEventListener('click', function () {
+                    var type = pw.type === 'password' ? 'text' : 'password';
+                    pw.type = type;
+                    t.querySelector('[data-hide]').classList.toggle('d-none', type === 'password');
+                    t.querySelector('[data-show]').classList.toggle('d-none', type !== 'password');
+                });
+                t.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); t.click(); } });
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -15,7 +15,7 @@
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                     <div>@ss.Subject.FullName</div>
-                    <div class="small text-body-secondary">@ss.Faculty.FullName</div>
+                    <div class="small text-body-secondary">@(ss.Faculty?.FullName ?? "—")</div>
                 </div>
                 <a asp-action="Grades" asp-route-sectionSubjectId="@ss.Id" class="btn btn-sm btn-primary">Enter grades</a>
             </li>
