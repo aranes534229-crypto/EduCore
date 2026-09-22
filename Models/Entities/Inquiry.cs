@@ -20,6 +20,10 @@ public class Inquiry
 {
     public int Id { get; set; }
 
+    /// <summary>Display number shown to users (e.g. INQ-1001). Generated sequentially starting at 1001
+    /// via count-based numbering, matching the pattern used for student numbers.</summary>
+    public string InquiryNumber { get; set; } = "";
+
     [Required]
     public string StudentName { get; set; } = "";
 

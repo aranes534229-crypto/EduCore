@@ -23,7 +23,7 @@ public class InvoicesController : Controller
             .Include(i => i.SchoolYear)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
-            .OrderByDescending(i => i.IssuedDate)
+            .OrderByDescending(i => i.Number)
             .ToListAsync();
 
         return View(list);

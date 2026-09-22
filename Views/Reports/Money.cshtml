@@ -12,7 +12,7 @@
     <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Total billed", Value = ((decimal)ViewBag.TotalBilled).ToString("N2") })" />
     <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Collected", Value = ((decimal)ViewBag.TotalCollected).ToString("N2"), ValueClass = "text-success" })" />
     <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Outstanding", Value = ((decimal)ViewBag.TotalOutstanding).ToString("N2"), ValueClass = "text-danger" })" />
-    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Expenses", Value = ((decimal)ViewBag.TotalExpenses).ToString("N2") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Accounting & Expenses", Value = ((decimal)ViewBag.TotalExpenses).ToString("N2") })" />
 </div>
 
 @if (Model.Count == 0)

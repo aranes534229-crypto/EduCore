@@ -118,6 +118,7 @@ public class InquiriesController : Controller
         inquiry.Status = InquiryStatus.New;
         inquiry.CreatedByUserId = _users.GetUserId(User);
         inquiry.ContactEmail = user?.Email ?? inquiry.ContactEmail;
+        inquiry.InquiryNumber = await NextInquiryNumberAsync();
         _db.Inquiries.Add(inquiry);
         await _db.SaveChangesAsync();
         await SaveUploadsAsync(inquiry, uploads);
@@ -219,7 +220,7 @@ public class InquiriesController : Controller
                 GradeLevelId = inquiry.GradeLevelId,
                 SchoolYearId = activeYear.Id,
                 Status = EnrollmentStatus.Unscheduled,  // enrolled; waiting on the Registrar to schedule
-                Notes = $"Approved from inquiry #{inquiry.Id}"
+                Notes = $"Approved from inquiry #{inquiry.InquiryNumber}"
             };
             _db.Enrollments.Add(enrollment);
         }
@@ -291,6 +292,14 @@ public class InquiriesController : Controller
         var prefix = $"{DateTime.Today.Year}-";
         var count = await _db.Students.CountAsync(s => s.StudentNumber.StartsWith(prefix));
         return $"{prefix}{count + 1:0000}";
+    }
+
+    // Inquiries start at 1001 and increment by 1. Count-based so deleted inquiries don't leave gaps
+    // in the visible sequence; collisions are impossible unless someone manually truncates the table.
+    private async Task<string> NextInquiryNumberAsync()
+    {
+        var count = await _db.Inquiries.CountAsync();
+        return $"INQ-{1001 + count:D4}";
     }
 
     private static (string First, string Last) SplitName(string full)
