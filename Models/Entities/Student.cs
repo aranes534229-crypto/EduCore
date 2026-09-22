@@ -8,8 +8,9 @@ public class Student
 {
     public int Id { get; set; }
 
-    /// <summary>Admission ID (e.g. "2026-0143") assigned when a lead is converted. Kept as a
-    /// display string — the DB int Id stays the key, this is the human-readable number.</summary>
+    /// <summary>Admission number (e.g. "1001") assigned when a student is created. Sequential
+    /// starting at 1001, count-based so deleted students don't leave gaps. Kept as a display
+    /// string — the DB int Id stays the key.</summary>
     public string StudentNumber { get; set; } = "";
 
     [Required]

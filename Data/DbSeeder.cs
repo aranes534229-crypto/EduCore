@@ -82,7 +82,7 @@ public static class DbSeeder
         if (!await db.Students.AnyAsync())
             db.Students.Add(new Student
             {
-                StudentNumber = $"{DateTime.Today.Year}-0001",
+                StudentNumber = "1001",
                 FirstName = "Juan",
                 LastName = "Dela Cruz",
                 BirthDate = new DateTime(2016, 3, 14),
@@ -324,7 +324,7 @@ public static class DbSeeder
         {
             var luis = new Student
             {
-                StudentNumber = $"{DateTime.Today.Year}-0002",
+                StudentNumber = "1002",
                 FirstName = "Luis",
                 LastName = "Ramos",
                 GuardianName = "Nena Ramos",
@@ -380,7 +380,7 @@ public static class DbSeeder
         {
             var miguel = new Student
             {
-                StudentNumber = $"{DateTime.Today.Year}-0003",
+                StudentNumber = "1003",
                 FirstName = "Miguel",
                 LastName = "Santos",
                 GuardianName = "Lola Santos",
@@ -435,7 +435,7 @@ public static class DbSeeder
         foreach (var (last, seq) in demoNumbers)
         {
             var st = await db.Students.FirstOrDefaultAsync(s => s.LastName == last);
-            var want = $"{DateTime.Today.Year}-{seq:0000}";
+            var want = $"{1000 + seq:D4}";
             if (st is not null && st.StudentNumber != want)
             {
                 st.StudentNumber = want;

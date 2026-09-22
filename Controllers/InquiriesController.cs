@@ -285,13 +285,14 @@ public class InquiriesController : Controller
         await _db.SaveChangesAsync();
     }
 
-    // ponytail: count-based (a deleted student can reuse a number). Lock per-year sequences in a
-    // dedicated table if the admission ID must be collision-proof forever.
+    // Student admission IDs: sequential starting at 1001 (1001, 1002, …), no year prefix.
+    // Count-based so deleted students don't leave gaps; collisions are impossible unless someone
+    // manually truncates the table. ponytail: lock in a dedicated sequence table if IDs must be
+    // collision-proof forever.
     private async Task<string> NextStudentNumberAsync()
     {
-        var prefix = $"{DateTime.Today.Year}-";
-        var count = await _db.Students.CountAsync(s => s.StudentNumber.StartsWith(prefix));
-        return $"{prefix}{count + 1:0000}";
+        var count = await _db.Students.CountAsync();
+        return $"{1001 + count:D4}";
     }
 
     // Inquiries start at 1001 and increment by 1. Count-based so deleted inquiries don't leave gaps

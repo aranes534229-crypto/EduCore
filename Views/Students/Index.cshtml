@@ -27,7 +27,7 @@
         @foreach (var s in Model)
         {
             <tr>
-                <td>@s.Id</td>
+                <td>@s.StudentNumber</td>
                 <td>@s.FullName</td>
                 <td>@(s.BirthDate?.ToString("d") ?? "—")</td>
                 <td>@s.GuardianName</td>
