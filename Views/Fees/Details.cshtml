@@ -1,0 +1,36 @@
+@model EduCore.Models.Entities.Fee
+@{
+    ViewData["Title"] = "Fee details";
+}
+
+<h2>Fee details</h2>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Name</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Amount</dt>
+            <dd class="col-sm-9">@Model.Amount.ToString("N2")</dd>
+
+            <dt class="col-sm-3">Grade</dt>
+            <dd class="col-sm-9">@(Model.GradeLevel?.Name ?? "Shared (all grades)")</dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary">Inactive</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to list</a>
+</div>

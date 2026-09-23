@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fees - EduCore</title>
+    
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=j6fhJSuuyLpOSLuPJU0TsDV0iNjor5S3rDnvxJrt4bg" />
+    <link rel="stylesheet" href="/EduCore.styles.css?v=JlUMB3lzwlu_OSy8R5wSRx4eAY9SzP2qvEkmUE98k_g" />
+</head>
+<body>
+    <header b-iek95ecr7h>
+        <nav b-iek95ecr7h class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div b-iek95ecr7h class="container-fluid">
+                <a class="navbar-brand" href="/">EduCore</a>
+                <button b-iek95ecr7h class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span b-iek95ecr7h class="navbar-toggler-icon"></span>
+                </button>
+                <div b-iek95ecr7h class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul b-iek95ecr7h class="navbar-nav flex-grow-1">
+                        <li b-iek95ecr7h class="nav-item">
+                            <a class="nav-link text-dark" href="/">Home</a>
+                        </li>
+                        <li b-iek95ecr7h class="nav-item">
+                            <a class="nav-link text-dark" href="/Home/Privacy">Privacy</a>
+                        </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Students">Students</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Enrollments">Enrollments</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Inquiries">Inquiries</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Sections">Sections</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Faculty">Faculty</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Subjects">Subjects</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Fees">Fees</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Invoices">Tuition & Billing</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Expenses">Accounting & Expenses</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Messages">Messages</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Announcements">Announcements</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Gradebook">Gradebook</a>
+                            </li>
+                            <li b-iek95ecr7h class="nav-item">
+                                <a class="nav-link text-dark" href="/Reports">Reports</a>
+                            </li>
+                    </ul>
+                    
+    <ul class="navbar-nav">
+        <li class="nav-item">
+            <span class="nav-link text-dark">admin@educore.local</span>
+        </li>
+        <li class="nav-item">
+            <form class="form-inline" method="post" action="/Account/Logout?returnUrl=%2F">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
+            <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+        </li>
+    </ul>
+
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div b-iek95ecr7h class="container">
+        <main b-iek95ecr7h role="main" class="pb-3">
+            
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Fees</h2>
+    <a class="btn btn-primary" href="/Fees/Create">Add fee</a>
+</div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Fee</th>
+                    <th scope="col" class="text-end">Amount</th>
+                    <th scope="col">Grade</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                    <tr>
+                        <td class="fw-medium">Climate Control</td>
+                        <td class="text-end">20,000.00</td>
+                        <td>Grade 1</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1014">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1014">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1014">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 1 Tuition</td>
+                        <td class="text-end">11,500.00</td>
+                        <td>Grade 1</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1002">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1002">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1002">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Test Tuition Fee</td>
+                        <td class="text-end">12,000.00</td>
+                        <td>Grade 1</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1015">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1015">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1015">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 2 Tuition</td>
+                        <td class="text-end">13,000.00</td>
+                        <td>Grade 2</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1003">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1003">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1003">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 3 Tuition</td>
+                        <td class="text-end">14,500.00</td>
+                        <td>Grade 3</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1004">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1004">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1004">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 4 Tuition</td>
+                        <td class="text-end">16,000.00</td>
+                        <td>Grade 4</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1005">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1005">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1005">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 5 Tuition</td>
+                        <td class="text-end">17,500.00</td>
+                        <td>Grade 5</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1006">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1006">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1006">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 6 Tuition</td>
+                        <td class="text-end">19,000.00</td>
+                        <td>Grade 6</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1007">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1007">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1007">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 7 Tuition</td>
+                        <td class="text-end">20,500.00</td>
+                        <td>Grade 7</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1008">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1008">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1008">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 8 Tuition</td>
+                        <td class="text-end">22,000.00</td>
+                        <td>Grade 8</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1009">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1009">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1009">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 9 Tuition</td>
+                        <td class="text-end">23,500.00</td>
+                        <td>Grade 9</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1010">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1010">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1010">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 10 Tuition</td>
+                        <td class="text-end">25,000.00</td>
+                        <td>Grade 10</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1011">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1011">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1011">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-medium">Grade 11 Tuition</td>
+                        <td class="text-end">26,500.00</td>
+                        <td>Grade 11</td>
+                        <td>
+                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" title="View" href="/Fees/Details/1012">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary" title="Edit" href="/Fees/Edit/1012">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" onsubmit="return confirm('Delete this fee?');" data-bs-toggle="tooltip" title="Delete" action="/Fees/Delete/1012">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8Hha3twHuvNIhtgDrenrk_natXsvoBbhZ2EPCZLsG9MSCrD5xuUUhvdQCe4sdkni-L19-2a5BvmALpj3mu1d1Q8RDGURFeGztDHBsSel09w64meopM4tYGD2QtRN5vSAHJTYb5LCb7aKTZhVmlfoYPezMg97KiG_c6f78KfxnHqt2hLDqaqMQuBPHHQyYl6GnA" /></form>
+                            </div>
+                        </td>
+                    </tr>
+            </tbody>
+        </table>
+    </div>
+
+        </main>
+    </div>
+
+    <footer b-iek95ecr7h class="border-top footer text-muted">
+        <div b-iek95ecr7h class="container">
+            &copy; 2026 - EduCore - <a href="/Home/Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/site.js?v=hRQyftXiu1lLX2P9Ly9xa4gHJgLeR1uGN5qegUobtGo"></script>
+    
+</body>
+</html>
