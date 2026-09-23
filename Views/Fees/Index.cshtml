@@ -12,6 +12,7 @@
         <tr>
             <th>Fee</th>
             <th class="text-end">Amount</th>
+            <th>Grade</th>
             <th>Status</th>
             <th></th>
         </tr>
@@ -22,6 +23,7 @@
         <tr>
             <td>@f.Name</td>
             <td class="text-end">@f.Amount.ToString("N2")</td>
+            <td>@(f.GradeLevel?.Name ?? "Shared")</td>
             <td>@(f.IsActive ? "Active" : "Inactive")</td>
             <td class="text-end">
                 <form asp-action="Delete" asp-route-id="@f.Id" method="post"

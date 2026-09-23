@@ -3,6 +3,7 @@ using EduCore.Models.Constants;
 using EduCore.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Controllers;
@@ -17,7 +18,12 @@ public class FeesController : Controller
     public async Task<IActionResult> Index() =>
         View(await _db.Fees.OrderBy(f => f.Name).ToListAsync());
 
-    public IActionResult Create() => View();
+    public async Task<IActionResult> Create()
+    {
+        ViewBag.GradeLevels = new SelectList(
+            await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name", (object?)null);
+        return View();
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Fee f)

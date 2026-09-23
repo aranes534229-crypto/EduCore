@@ -170,13 +170,15 @@ public class SectionsController : Controller
         if (enrollment is not null) enrollment.Status = status;
 
         // Auto-billing: once a student is Scheduled, their grade's tuition invoice appears
-        // automatically. Runs only on the assign path (Scheduled); guarded so a student is never
-        // billed twice for the same school year even if they're re-assigned to another section.
+        // automatically, sourced from the per-grade Fee row (Module 3). Runs only on the
+        // assign path (Scheduled); guarded so a student is never billed twice for the same
+        // school year even if re-assigned to another section.
         if (status is EnrollmentStatus.Scheduled && enrollment is not null
             && !await _db.Invoices.AnyAsync(i => i.StudentId == studentId && i.SchoolYearId == section.SchoolYearId))
         {
-            var grade = await _db.GradeLevels.FindAsync(section.GradeLevelId);
-            if (grade is not null && grade.Amount > 0)
+            var tuitionFee = await _db.Fees
+                .FirstOrDefaultAsync(f => f.IsActive && f.GradeLevelId == section.GradeLevelId);
+            if (tuitionFee is not null && tuitionFee.Amount > 0)
             {
                 _db.Invoices.Add(new Invoice
                 {
@@ -186,7 +188,7 @@ public class SectionsController : Controller
                     Number = await InvoiceNumbering.NextAsync(_db),
                     Lines = new List<InvoiceLine>
                     {
-                        new InvoiceLine { Description = $"{grade.Name} Tuition", Amount = grade.Amount }
+                        new InvoiceLine { Description = tuitionFee.Name, Amount = tuitionFee.Amount }
                     }
                 });
                 await _db.SaveChangesAsync();

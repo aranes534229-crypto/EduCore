@@ -243,15 +243,19 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
-        // Module 3 — Tuition & Billing demo data: a couple of default fees, no invoice
-        // (so the user generates one and watches the balance change).
-        if (!await db.Fees.AnyAsync())
+        // Module 3 — Tuition & Billing demo data: one master tuition Fee per grade level
+        // (linked via GradeLevelId), so scheduling auto-billing has a fee to find.
+        // Misc/Activity fees are shared rows with GradeLevelId null (created manually later).
+        if (!await db.Fees.AnyAsync(f => f.GradeLevelId.HasValue))
         {
-            db.Fees.AddRange(new[]
+            var gradeLevels = await db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync();
+            db.Fees.AddRange(gradeLevels.Select(g => new Fee
             {
-                new Fee { Name = "Tuition", Amount = 25000m, IsActive = true },
-                new Fee { Name = "Miscellaneous", Amount = 3500m, IsActive = true }
-            });
+                Name = $"{g.Name} Tuition",
+                Amount = g.Amount,
+                IsActive = true,
+                GradeLevelId = g.Id
+            }));
             await db.SaveChangesAsync();
         }
 
