@@ -29,8 +29,10 @@ else
                 @foreach (var f in Model)
                 {
                     <tr>
-                        <td class="fw-medium">@f.Name</td>
-                        <td class="text-end">@f.Amount.ToString("N2")</td>
+                        <td class="fw-medium">
+                            <a asp-action="Details" asp-route-id="@f.Id" class="text-decoration-none">@f.Name</a>
+                        </td>
+                        <td class="text-end">@f.TotalAmount.ToString("N2")</td>
                         <td>@(f.GradeLevel?.Name ?? "<span class='text-muted'>Shared</span>")</td>
                         <td>
                             @if (f.IsActive)

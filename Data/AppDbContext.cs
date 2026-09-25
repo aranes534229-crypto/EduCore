@@ -22,6 +22,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Attendance> Attendance => Set<Attendance>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Fee> Fees => Set<Fee>();
+    public DbSet<FeeLine> FeeLines => Set<FeeLine>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
     public DbSet<Payment> Payments => Set<Payment>();
@@ -55,7 +56,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .IsUnique();
 
         // Money columns are decimal(18,2) so amounts don't silently truncate.
-        b.Entity<Fee>().Property(f => f.Amount).HasPrecision(18, 2);
+        b.Entity<FeeLine>().Property(l => l.Amount).HasPrecision(18, 2);
+
+        // Fee has many FeeLines; cascade delete so removing a Fee clears its lines.
+        b.Entity<FeeLine>()
+            .HasOne(fl => fl.Fee)
+            .WithMany(f => f.Lines)
+            .HasForeignKey(fl => fl.FeeId);
+        b.Entity<Fee>()
+            .HasMany(f => f.Lines)
+            .WithOne(fl => fl.Fee)
+            .HasForeignKey(fl => fl.FeeId);
         b.Entity<InvoiceLine>().Property(l => l.Amount).HasPrecision(18, 2);
         b.Entity<Payment>().Property(p => p.Amount).HasPrecision(18, 2);
         b.Entity<Expense>().Property(e => e.Amount).HasPrecision(18, 2);

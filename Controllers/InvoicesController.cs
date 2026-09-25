@@ -57,7 +57,10 @@ public class InvoicesController : Controller
 
         var invoice = new Invoice { StudentId = studentId, SchoolYearId = schoolYearId };
         invoice.Number = await InvoiceNumbering.NextAsync(_db);
-        invoice.Lines = fees.Select(f => new InvoiceLine { Description = f.Name, Amount = f.Amount }).ToList();
+        invoice.Lines = fees.SelectMany(f =>
+    f.Lines.Where(fl => fl.IsActive)
+        .Select(fl => new InvoiceLine { Description = fl.Description, Amount = fl.Amount }))
+    .ToList();
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));

@@ -1,4 +1,4 @@
-@model EduCore.Models.Entities.Fee
+@model EduCore.ViewModels.FeeFormVm
 @{
     ViewData["Title"] = "Edit fee";
 }
@@ -6,31 +6,70 @@
 <h2>Edit fee</h2>
 
 <form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="row g-3 col-md-6 col-12">
-        <div class="col-md-7">
-            <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" />
-            <span asp-validation-for="Name" class="text-danger small"></span>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Fee.Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row g-3 col-md-7 col-12">
+        <div class="col-12">
+            <label asp-for="Fee.Name" class="form-label">Fee name</label>
+            <input asp-for="Fee.Name" class="form-control" placeholder="e.g. Grade 1 Tuition" />
+            <span asp-validation-for="Fee.Name" class="text-danger small"></span>
         </div>
-        <div class="col-md-5">
-            <label asp-for="Amount" class="form-label"></label>
-            <input asp-for="Amount" class="form-control" />
-            <span asp-validation-for="Amount" class="text-danger small"></span>
+        <div class="col-md-6">
+            <label asp-for="Fee.GradeLevelId" class="form-label">Grade</label>
+            <select asp-for="Fee.GradeLevelId" asp-items="ViewBag.GradeLevels" class="form-select">
+                <option value="">— Shared fee (no specific grade) —</option>
+            </select>
+            <span asp-validation-for="Fee.GradeLevelId" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+            <div class="form-check">
+                <input asp-for="Fee.IsActive" class="form-check-input" />
+                <label asp-for="Fee.IsActive" class="form-check-label"></label>
+            </div>
         </div>
     </div>
 
-    <div class="mt-3">
-        <label asp-for="GradeLevelId" class="form-label">Grade</label>
-        <select asp-for="GradeLevelId" asp-items="ViewBag.GradeLevels" class="form-select">
-            <option value="">— Shared fee (no specific grade) —</option>
-        </select>
-        <span asp-validation-for="GradeLevelId" class="text-danger small"></span>
-    </div>
+    <hr class="my-4" />
 
-    <div class="mt-3 form-check">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label"></label>
+    <h5 class="mb-2">Fee items</h5>
+    <p class="text-body-secondary small">Add one or more charge lines. The sum of the items below becomes the fee total.</p>
+
+    <table class="table table-sm align-middle">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">Charge Description</th>
+                <th scope="col" class="w-25 text-end">Amount</th>
+                <th scope="col" class="text-center">Active</th>
+                <th scope="col" class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="feeItems">
+            @for (int i = 0; i < Model.Items.Count; i++)
+            {
+                <tr>
+                    <td>
+                        <input asp-for="@Model.Items[i].Description" class="form-control form-control-sm" placeholder="Tuition, Lab fee, etc." />
+                        <span asp-validation-for="@Model.Items[i].Description" class="text-danger small"></span>
+                    </td>
+                    <td>
+                        <input asp-for="@Model.Items[i].Amount" class="form-control form-control-sm text-end" />
+                        <span asp-validation-for="@Model.Items[i].Amount" class="text-danger small"></span>
+                    </td>
+                    <td class="text-center">
+                        <input asp-for="@Model.Items[i].IsActive" class="form-check-input m-auto" />
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger removeRow">&times;</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" id="addRow" class="btn btn-sm btn-outline-secondary">Add item</button>
     </div>
 
     <div class="mt-4 d-flex gap-2">
@@ -41,4 +80,24 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        var rowTemplate = $('#feeItems tr:last').clone();
+        rowTemplate.find('input').val('');
+        rowTemplate.find('input[type=checkbox]').prop('checked', true);
+
+        $('#addRow').on('click', function () {
+            var idx = $('#feeItems tr').length;
+            var row = rowTemplate.clone();
+            row.find('[name*="Description"]').attr('name', 'Items[' + idx + '].Description').val('');
+            row.find('[name*="Amount"]').attr('name', 'Items[' + idx + '].Amount').val('');
+            row.find('[name*="IsActive"]').attr('name', 'Items[' + idx + '].IsActive').prop('checked', true);
+            row.find('[name*="Id"]').remove();
+            row.find('.removeRow').off('click').on('click', function () { row.remove(); });
+            row.appendTo('#feeItems');
+        });
+
+        $('.removeRow').on('click', function () {
+            $(this).closest('tr').remove();
+        });
+    </script>
 }

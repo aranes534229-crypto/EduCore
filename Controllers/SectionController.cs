@@ -177,8 +177,9 @@ public class SectionsController : Controller
             && !await _db.Invoices.AnyAsync(i => i.StudentId == studentId && i.SchoolYearId == section.SchoolYearId))
         {
             var tuitionFee = await _db.Fees
+                .Include(f => f.Lines)
                 .FirstOrDefaultAsync(f => f.IsActive && f.GradeLevelId == section.GradeLevelId);
-            if (tuitionFee is not null && tuitionFee.Amount > 0)
+            if (tuitionFee is not null && tuitionFee.TotalAmount > 0)
             {
                 _db.Invoices.Add(new Invoice
                 {
@@ -188,7 +189,7 @@ public class SectionsController : Controller
                     Number = await InvoiceNumbering.NextAsync(_db),
                     Lines = new List<InvoiceLine>
                     {
-                        new InvoiceLine { Description = tuitionFee.Name, Amount = tuitionFee.Amount }
+                        new InvoiceLine { Description = tuitionFee.Name, Amount = tuitionFee.TotalAmount }
                     }
                 });
                 await _db.SaveChangesAsync();

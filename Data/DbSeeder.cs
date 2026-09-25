@@ -252,9 +252,12 @@ public static class DbSeeder
             db.Fees.AddRange(gradeLevels.Select(g => new Fee
             {
                 Name = $"{g.Name} Tuition",
-                Amount = g.Amount,
                 IsActive = true,
-                GradeLevelId = g.Id
+                GradeLevelId = g.Id,
+                Lines = new List<FeeLine>
+                {
+                    new FeeLine { Description = "Tuition", Amount = g.Amount, IsActive = true }
+                }
             }));
             await db.SaveChangesAsync();
         }

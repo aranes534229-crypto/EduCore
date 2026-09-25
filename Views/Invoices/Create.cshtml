@@ -32,7 +32,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="feeIds" value="@f.Id" id="fee_@f.Id" checked />
                 <label class="form-check-label" for="fee_@f.Id">
-                    @f.Name — @f.Amount.ToString("N2")
+                    @f.Name — @f.TotalAmount.ToString("N2")
                 </label>
             </div>
         }
