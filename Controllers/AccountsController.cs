@@ -1,9 +1,11 @@
+using EduCore.Data;
 using EduCore.Models.Constants;
 using EduCore.Models.Entities;
 using EduCore.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Controllers;
@@ -15,29 +17,100 @@ namespace EduCore.Controllers;
 public class AccountsController : Controller
 {
     private readonly UserManager<ApplicationUser> _users;
+    private readonly AppDbContext _db;
 
-    public AccountsController(UserManager<ApplicationUser> users)
+    public AccountsController(UserManager<ApplicationUser> users, AppDbContext db)
     {
         _users = users;
+        _db = db;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, string? role, bool? locked, int page = 1, int pageSize = 10)
     {
-        var apps = await _users.Users.OrderBy(u => u.Email).ToListAsync();
-        var rows = new List<UserListItemVM>();
-        foreach (var u in apps)
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query
+        var query = _users.Users
+            .Include(u => u.Person)
+            .AsQueryable();
+
+        // Search filter — DisplayName may come from Person.FullName (computed), so search
+        // the mapped columns (Email, Person.FirstName/LastName) instead.
+        if (!string.IsNullOrWhiteSpace(q))
         {
-            rows.Add(new UserListItemVM
-            {
-                Id = u.Id,
-                Email = u.Email ?? "",
-                DisplayName = u.DisplayName,
-                Roles = await _users.GetRolesAsync(u),
-                LockoutEnd = u.LockoutEnd
-            });
+            var term = q.Trim().ToLower();
+            query = query.Where(u =>
+                u.Email != null && u.Email.ToLower().Contains(term) ||
+                u.Person!.FirstName.ToLower().Contains(term) ||
+                u.Person!.LastName.ToLower().Contains(term));
         }
-        ViewData["CurrentUserId"] = _users.GetUserId(User);
-        return View(rows);
+
+        // Role filter
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleId = await _db.Roles.Where(r => r.Name == role).Select(r => r.Id).FirstOrDefaultAsync();
+            query = query.Where(u => _db.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == roleId));
+        }
+
+        // Locked filter
+        if (locked.HasValue)
+        {
+            query = locked.Value
+                ? query.Where(u => u.LockoutEnd != null && u.LockoutEnd > DateTimeOffset.UtcNow)
+                : query.Where(u => u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.UtcNow);
+        }
+
+        // Order
+        query = query.OrderBy(u => u.Email);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged users
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Batched role lookup for the paged users — one query instead of GetRolesAsync per user.
+        var pageIds = items.Select(u => u.Id).ToList();
+        var rolePairs = await _db.UserRoles
+            .Where(ur => pageIds.Contains(ur.UserId))
+            .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, RoleName = r.Name ?? "" })
+            .ToListAsync();
+        var rolesByUser = rolePairs
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => (IList<string>)g.Select(x => x.RoleName).ToList());
+
+        var rows = items.Select(u => new UserListItemVM
+        {
+            Id = u.Id,
+            Email = u.Email ?? "",
+            DisplayName = u.Person?.FullName ?? u.Email ?? "",
+            Roles = rolesByUser.GetValueOrDefault(u.Id) ?? new List<string>(),
+            LockoutEnd = u.LockoutEnd
+        }).ToList();
+
+        var vm = new AccountsIndexVM
+        {
+            Items = rows,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            Role = role,
+            Locked = locked,
+            CurrentUserId = _users.GetUserId(User) ?? "",
+            RoleValues = new SelectList(AppRoles.All)
+        };
+        return View(vm);
     }
 
     [HttpGet]
@@ -57,11 +130,20 @@ public class AccountsController : Controller
 
         if (!ModelState.IsValid) return View(vm);
 
+        var person = new Person
+        {
+            FirstName = vm.DisplayName.Split(' ').FirstOrDefault() ?? "",
+            LastName = vm.DisplayName.Split(' ').Skip(1).FirstOrDefault() ?? "",
+            Email = vm.Email
+        };
+        _db.Persons.Add(person);
+        await _db.SaveChangesAsync();
+
         var user = new ApplicationUser
         {
             UserName = vm.Email,
             Email = vm.Email,
-            DisplayName = vm.DisplayName,
+            PersonId = person.Id,
             EmailConfirmed = true
         };
         var result = await _users.CreateAsync(user, vm.Password);
@@ -73,6 +155,25 @@ public class AccountsController : Controller
         }
 
         await _users.AddToRoleAsync(user, vm.Role);
+
+        // If Faculty role, auto-create Faculty record linked to the same Person
+        if (vm.Role == AppRoles.Faculty)
+        {
+            var existingFaculty = await _db.Faculty.FirstOrDefaultAsync(f => f.PersonId == person.Id);
+            if (existingFaculty is null)
+            {
+                var facultyCount = await _db.Faculty.CountAsync();
+                _db.Faculty.Add(new Faculty
+                {
+                    PersonId = person.Id,
+                    EmployeeNumber = $"EMP-{1001 + facultyCount:D4}",
+                    HireDate = DateTime.Today,
+                    IsActive = true
+                });
+                await _db.SaveChangesAsync();
+            }
+        }
+
         TempData["Info"] = $"Account created for {user.Email} ({vm.Role}). They can change their password from Settings.";
         return RedirectToAction(nameof(Index));
     }

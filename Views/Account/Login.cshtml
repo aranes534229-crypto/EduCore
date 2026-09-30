@@ -17,100 +17,128 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,opsz,wght@0,36..84,400;1,36..84,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,opsz,wght@0,36..84,400;1,36..84,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Warm academic palette */
-            --ec-paper: #F7F5F1;
+            /* Light-themed card design with orange primary actions */
+            --ec-paper: #f8fafc;
             --ec-paper-dark: #121110;
-            --ec-card: #FFFFFF;
+            --ec-card: #ffffff;
             --ec-card-dark: #1B1A19;
-            --ec-ink: #2B2A29;
-            --ec-ink-dim: #6B6A69;
+            --ec-ink: #0f172a;
+            --ec-ink-dim: #64748b;
             --ec-ink-dark: #EAE8E6;
             --ec-ink-dim-dark: #B8B6B5;
-            --ec-accent: #3D5B8C;         /* school blue */
-            --ec-accent-hover: #324b70;
+            --ec-accent: #d97706;         /* warm orange */
+            --ec-accent-hover: #df7c1a;
             --ec-role-admin: #7B5EA6;
             --ec-role-faculty: #4A6FA6;
             --ec-role-finance: #D97754;
             --ec-role-registrar: #5B9C68;
-            --ec-line: #E2DED9;
+            --ec-line: #e2e8f0;
             --ec-line-dark: #3A3836;
         }
-        @@media (prefers-color-scheme: dark) {
-            :root {
-                --ec-paper: #121110;
-                --ec-card: #1B1A19;
-                --ec-ink: #EAE8E6;
-                --ec-ink-dim: #B8B6B5;
-                --ec-line: #3A3836;
-            }
-        }
-        [data-theme="light"] { --ec-paper:#F7F5F1; --ec-card:#FFFFFF; --ec-ink:#2B2A29; --ec-ink-dim:#6B6A69; --ec-line:#E2DED9; }
-        [data-theme="dark"]   { --ec-paper:#121110; --ec-card:#1B1A19; --ec-ink:#EAE8E6; --ec-ink-dim:#B8B6B5; --ec-line:#3A3836; }
 
         * { font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
         .font-display { font-family: "Instrument Serif", Georgia, serif; }
 
         html,body { height:100%; }
-        body {
-            margin:0; background:var(--ec-paper); color:var(--ec-ink);
-            display:flex; align-items:center; justify-content:center;
-            min-height:100vh;
-        }
-        .login-card {
-            background:var(--ec-card); border:1px solid var(--ec-line);
-            border-radius:14px; padding:2.5rem 2rem; width:100%; max-width:384px;
-            box-shadow:0 1px 3px rgba(0,0,0,.05);
-        }
-        .login-card:focus-within { outline:2px solid var(--ec-accent); outline-offset:2px; }
 
-        .mark {
-            width:44px; height:44px; margin:0 auto 1rem;
-            display:flex; align-items:center; justify-content:center;
-            border-radius:10px; background:var(--ec-accent); color:#fff;
+        /* Force light mode for this page and center the card */
+        .login-page,
+        .login-page body {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            min-height: 100vh !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 2rem 1rem !important;
+            box-sizing: border-box !important;
         }
-        .wordmark { font-family:"Instrument Serif",Georgia,serif; font-size:1.625rem; font-weight:400; letter-spacing:-.02em; text-align:center; margin:0; }
-        .wordmark .dot { color:var(--ec-accent); }
-        .tagline { text-align:center; color:var(--ec-ink-dim); font-size:.875rem; margin:0 auto 1.25rem; max-width:20rem; }
-        .role-sub { text-align:center; font-size:.825rem; font-weight:500; margin-bottom:1.5rem; letter-spacing:.02em; }
-        .role-sub .badge-role {
+
+        .login-page .login-card {
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05) !important;
+            border-radius: 16px !important;
+            padding: 2.5rem 2rem;
+            width: 100% !important;
+            max-width: 420px !important;
+            margin: 0 auto !important;
+        }
+
+        .login-page .mark {
+            width:48px; height:48px; margin:0 auto 1rem;
+            display:flex; align-items:center; justify-content:center;
+            border-radius:50%; background:#ffffff;
+            box-shadow:0 2px 6px rgba(0,0,0,.08);
+        }
+        .login-page .mark img {
+            width:36px; height:36px; border-radius:0; display:block;
+        }
+        .login-page .wordmark { font-family:"Instrument Serif",Georgia,serif; font-size:1.625rem; font-weight:400; letter-spacing:-.02em; text-align:center; margin:0; color:#0f172a !important; }
+        .login-page .wordmark .dot { color:var(--ec-accent); }
+        .login-page .tagline { text-align:center; color:#64748b !important; font-size:.875rem; margin:0 auto 1.25rem; max-width:20rem; }
+        .login-page .role-sub { text-align:center; font-size:.825rem; font-weight:500; margin-bottom:1.5rem; letter-spacing:.02em; }
+        .login-page .role-sub .badge-role {
             display:inline-block; padding:.125rem .55rem; border-radius:999px;
-            font-size:.75rem; font-weight:600; color:#fff; vertical-align:middle; margin-left:.4rem;
+            font-size:.75rem; font-weight:600; vertical-align:middle; margin-left:.4rem;
         }
-        .role-admin   { background:var(--ec-role-admin); }
-        .role-faculty { background:var(--ec-role-faculty); }
-        .role-finance { background:var(--ec-role-finance); }
-        .role-registrar { background:var(--ec-role-registrar); }
-        .role-parent  { background:#6B7280; }
-        .role-default { background:var(--ec-accent); }
+        /* Role pills – inactive style (default) */
+        .login-page .badge-role {
+            background:#f1f5f9 !important;
+            border:1px solid #cbd5e1 !important;
+            color:#475569 !important;
+        }
+        /* Active pill variant (if used via JS) */
+        .login-page .badge-role.active {
+            background:#1e293b !important;
+            border-color:#1e293b !important;
+            color:#ffffff !important;
+        }
 
-        .form-control:focus { border-color:var(--ec-accent); box-shadow:0 0 0 .18rem rgba(61,91,140,.15); }
-        .form-label { font-size:.8rem; font-weight:600; color:var(--ec-ink-dim); letter-spacing:.03em; }
-.input-group-text { background:transparent; border:none; color:var(--ec-ink-dim); padding:0 .5rem; }
-        .pw-toggle-wrap { position:relative; }
-        .pw-toggle-wrap input { padding-right:2.6rem; }
-        .toggle-pw { position:absolute; right:.5rem; top:50%; transform:translateY(-50%); padding:.2rem .25rem; font-size:.8rem; font-weight:600; color:var(--ec-ink-dim); }
-        .btn-signin {
-            background:var(--ec-accent); color:#fff; border:none; font-weight:600;
-            padding:.7rem 1.1rem; border-radius:10px; width:100%; transition:background .15s;
+        .login-page .form-control,
+        .login-page .form-control:focus,
+        .login-page .form-control:hover {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
         }
-        .btn-signin:hover { background:var(--ec-accent-hover); }
-        .divider { position:relative; text-align:center; margin:1.5rem 0; color:var(--ec-ink-dim); font-size:.8rem; }
-        .divider::before { content:""; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--ec-line); }
-        .divider span { background:var(--ec-card); padding:0 .7rem; position:relative; }
-        .muted { color:var(--ec-ink-dim); font-size:.825rem; }
-        .link { color:var(--ec-accent); font-weight:500; }
-        .form-check-label { font-size:.85rem; color:var(--ec-ink); }
+        .login-page .form-control:focus {
+            border-color: #d97706 !important;
+            box-shadow: 0 0 0 .18rem rgba(217,119,6,.15) !important;
+        }
+        .login-page .form-label { font-size:.8rem; font-weight:600; color:#64748b !important; letter-spacing:.03em; }
+        .login-page .input-group-text { background:transparent; border:none; color:#64748b; padding:0 .5rem; }
+        .login-page .pw-toggle-wrap { position:relative; }
+        .login-page .pw-toggle-wrap input { padding-right:2.6rem; }
+        .login-page .toggle-pw { position:absolute; right:.5rem; top:50%; transform:translateY(-50%); padding:.2rem .25rem; font-size:.8rem; font-weight:600; color:#64748b; }
+        .login-page .btn-signin {
+            background-color: #d97706 !important;
+            border-color: #d97706 !important;
+            color: #ffffff !important;
+            border:none; font-weight:600;
+            padding:.7rem 1.1rem; border-radius:8px; width:100%; transition:background .15s;
+        }
+        .login-page .btn-signin:hover { background-color: #df7c1a !important; }
+        .login-page .divider { position:relative; text-align:center; margin:1.5rem 0; color:#64748b; font-size:.8rem; }
+        .login-page .divider::before { content:""; position:absolute; top:50%; left:0; right:0; height:1px; background:#e2e8f0; }
+        .login-page .divider span { background:#ffffff; padding:0 .7rem; position:relative; }
+        .login-page .muted { color:#64748b !important; font-size:.825rem; }
+        .login-page .link { color:var(--ec-accent); font-weight:500; }
+        .login-page .form-check-label { font-size:.85rem; color:#0f172a; }
         @@media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
     </style>
 </head>
-<body>
+<body class="login-page">
     <main>
         <div class="login-card" role="main" aria-labelledby="wordmark">
             <div class="mark" aria-hidden="true">
-                <span class="font-display" style="font-size:1.4rem;">E</span>
+                <img src="~/images/logo-educore.jpg" alt="EduCore" />
             </div>
             <h1 id="wordmark" class="wordmark">Edu<span class="dot">Core</span></h1>
             <p class="tagline">Tuition, enrollment, grades, and accounting for private schools.</p>

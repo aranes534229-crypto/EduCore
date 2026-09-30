@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -21,20 +23,85 @@ public class StudentsController : Controller
         _env = env;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await _db.Students.OrderByDescending(s => s.Id).ToListAsync());
+    public async Task<IActionResult> Index(string? q, int? gradeId, int page = 1, int pageSize = 10)
+    {
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query
+        var query = _db.Students
+            .Include(s => s.Person)
+            .Include(s => s.Section)
+            .AsQueryable();
+
+        // Search filter — mapped columns only (FullName is computed and not translatable by EF Core)
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(s =>
+                s.StudentNumber.ToLower().Contains(term) ||
+                s.Person!.FirstName.ToLower().Contains(term) ||
+                s.Person!.LastName.ToLower().Contains(term) ||
+                s.GuardianName.ToLower().Contains(term));
+        }
+
+        // Grade level filter (via the student's section)
+        if (gradeId.HasValue)
+        {
+            query = query.Where(s => s.Section!.GradeLevelId == gradeId.Value);
+        }
+
+        // Order
+        query = query.OrderByDescending(s => s.Id);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var vm = new StudentsIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            GradeLevelId = gradeId,
+            GradeLevels = new SelectList(
+                await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name")
+        };
+        return View(vm);
+    }
 
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
     public IActionResult Create() => View();
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
-    public async Task<IActionResult> Create([Bind("FirstName,LastName,BirthDate,Address,GuardianName,GuardianContact,GuardianEmail")] Student s, IFormFile[]? uploads)
+    public async Task<IActionResult> Create([Bind("StudentNumber,BirthDate,GuardianName,GuardianContact,GuardianEmail")] Student s,
+        [Bind("FirstName,LastName,Email,Phone,Address")] Person person,
+        IFormFile[]? uploads)
     {
         if (!ModelState.IsValid) return View(s);
+
+        _db.Persons.Add(person);
+        await _db.SaveChangesAsync();
+
+        s.PersonId = person.Id;
         s.StudentNumber = await NextStudentNumberAsync();
+
         _db.Students.Add(s);
-        await _db.SaveChangesAsync();          // need s.Id for the document links
+        await _db.SaveChangesAsync();
         await SaveUploadsAsync(s.Id, uploads);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
@@ -43,31 +110,41 @@ public class StudentsController : Controller
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
     public async Task<IActionResult> Edit(int id)
     {
-        var s = await _db.Students.Include(x => x.Documents).FirstOrDefaultAsync(x => x.Id == id);
+        var s = await _db.Students
+            .Include(x => x.Documents)
+            .Include(x => x.Person)
+            .FirstOrDefaultAsync(x => x.Id == id);
         return s is null ? NotFound() : View(s);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
-    public async Task<IActionResult> Edit(int id, Student s, IFormFile[]? uploads)
+    public async Task<IActionResult> Edit(int id, Student s,
+        [Bind("FirstName,LastName,Email,Phone,Address")] Person person,
+        IFormFile[]? uploads)
     {
         if (id != s.Id) return BadRequest();
         if (!ModelState.IsValid) return View(s);
 
-        // Field-by-field copy (like FacultyController.Edit): the Edit form does not post
-        // SectionId or ApplicationUserId, so a blind Update(s) would mark them Modified
-        // and overwrite them with null — silently un-sectioning the student and severing
-        // their linked Parent login. Only copy the columns the form actually edits.
-        var existing = await _db.Students.FindAsync(id);
+        var existing = await _db.Students
+            .Include(x => x.Person)
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (existing is null) return NotFound();
 
-        existing.FirstName = s.FirstName;
-        existing.LastName = s.LastName;
         existing.BirthDate = s.BirthDate;
-        existing.Address = s.Address;
         existing.GuardianName = s.GuardianName;
         existing.GuardianContact = s.GuardianContact;
         existing.GuardianEmail = s.GuardianEmail;
+
+        if (existing.Person is not null)
+        {
+            existing.Person.FirstName = person.FirstName;
+            existing.Person.LastName = person.LastName;
+            existing.Person.Email = person.Email;
+            existing.Person.Phone = person.Phone;
+            existing.Person.Address = person.Address;
+            existing.Person.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _db.SaveChangesAsync();
         await SaveUploadsAsync(existing.Id, uploads);
@@ -106,24 +183,25 @@ public class StudentsController : Controller
     }
 
     // ponytail: count-based (a deleted student can reuse a number). Mirrors InquiriesController for
-// consistency so walk-ins get the same admission-ID shape as online conversions.
-private async Task<string> NextStudentNumberAsync()
-{
-    var prefix = $"{DateTime.Today.Year}-";
-    var count = await _db.Students.CountAsync(s => s.StudentNumber.StartsWith(prefix));
-    return $"{prefix}{count + 1:0000}";
-}
+    // consistency so walk-ins get the same admission-ID shape as online conversions.
+    private async Task<string> NextStudentNumberAsync()
+    {
+        var prefix = $"{DateTime.Today.Year}-";
+        var count = await _db.Students.CountAsync(s => s.StudentNumber.StartsWith(prefix));
+        return $"{prefix}{count + 1:0000}";
+    }
 
-public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id)
     {
         var s = await _db.Students
             .Include(s => s.Documents)
+            .Include(s => s.Person)
             .FirstOrDefaultAsync(s => s.Id == id);
         return s is null ? NotFound() : View(s);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
         var s = await _db.Students.FindAsync(id);

@@ -1,3 +1,4 @@
+using EduCore.Data;
 using EduCore.Models.Constants;
 using EduCore.Models.Entities;
 using EduCore.ViewModels;
@@ -16,11 +17,13 @@ public class AccountController : Controller
 {
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly UserManager<ApplicationUser> _users;
+    private readonly AppDbContext _db;
 
-    public AccountController(SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users)
+    public AccountController(SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users, AppDbContext db)
     {
         _signIn = signIn;
         _users = users;
+        _db = db;
     }
 
     [HttpGet]
@@ -75,11 +78,20 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
+        var person = new Person
+        {
+            FirstName = vm.FullName.Split(' ').FirstOrDefault() ?? "",
+            LastName = vm.FullName.Split(' ').Skip(1).FirstOrDefault() ?? "",
+            Email = vm.Email
+        };
+        _db.Persons.Add(person);
+        await _db.SaveChangesAsync();
+
         var user = new ApplicationUser
         {
             UserName = vm.Email,
             Email = vm.Email,
-            DisplayName = vm.FullName,
+            PersonId = person.Id,
             EmailConfirmed = true // self-registered — no email-confirmation flow yet
         };
         var result = await _users.CreateAsync(user, vm.Password);

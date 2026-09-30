@@ -1,9 +1,10 @@
 @model EduCore.ViewModels.FeeFormVm
 @{
-    ViewData["Title"] = "Add fee";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Add Fee";
 }
 
-<h2>Add fee</h2>
+<h2>Add Fee</h2>
 
 <form asp-action="Create" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -78,26 +79,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        // Template row for cloning when adding a new fee-line item.
-        // asp-for naming uses index placeholders; jQuery rewrites them so MVC model binding picks them up.
-        var rowTemplate = $('#feeItems tr:last').clone();
-        rowTemplate.find('input').val('');
-        rowTemplate.find('input[type=checkbox]').prop('checked', true);
-
-        $('#addRow').on('click', function () {
-            var idx = $('#feeItems tr').length;
-            var row = rowTemplate.clone();
-            row.find('[name*="Description"]').attr('name', 'Items[' + idx + '].Description').val('');
-            row.find('[name*="Amount"]').attr('name', 'Items[' + idx + '].Amount').val('');
-            row.find('[name*="IsActive"]').attr('name', 'Items[' + idx + '].IsActive').prop('checked', true);
-            row.find('[name*="Id"]').remove();
-            row.find('.removeRow').prop('disabled', false).off('click').on('click', function () { row.remove(); });
-            row.appendTo('#feeItems');
-        });
-
-        $('.removeRow').prop('disabled', false).on('click', function () {
-            $(this).closest('tr').remove();
-        });
-    </script>
+    <script src="~/js/fees-items.js" asp-append-version="true"></script>
 }

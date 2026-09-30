@@ -1,38 +1,106 @@
-@model IEnumerable<EduCore.Models.Entities.Expense>
+@model ExpensesIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Accounting & Expenses";
 }
+
+<!-- Title row -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Accounting & Expenses</h2>
-    <a asp-action="Create" class="btn btn-primary">New expense</a>
+    <h1 class="h3 mb-0">Accounting & Expenses</h1>
+    <a asp-action="Create" class="btn btn-primary">New Expense</a>
 </div>
 
+<!-- Summary tiles -->
 <div class="row g-3 mb-3">
-    <partial name="_StatTile" model="@(new StatTileVM { Label = "Collected (payments)", Value = ((decimal)ViewBag.Collected).ToString("N2") })" />
-    <partial name="_StatTile" model="@(new StatTileVM { Label = "Accounting & Expenses", Value = ((decimal)ViewBag.TotalExpenses).ToString("N2") })" />
-    <partial name="_StatTile" model="@(new StatTileVM { Label = "Net", Value = ((decimal)ViewBag.Net).ToString("N2"), ValueClass = (decimal)ViewBag.Net >= 0 ? "text-success" : "text-danger" })" />
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Collected (payments)", Value = Model.Collected.ToString("₱#,##0.00") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Accounting & Expenses", Value = Model.TotalExpenses.ToString("₱#,##0.00") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { Label = "Net", Value = Model.Net.ToString("₱#,##0.00"), ValueClass = Model.Net >= 0 ? "text-success" : "text-danger" })" />
 </div>
 
-<table class="table">
+<!-- Toolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Category filter -->
+        <select name="category" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All categories</option>
+            @foreach (var c in Model.Categories)
+            {
+                <option value="@c.Value" selected="@(Model.Category == c.Value)">@c.Text</option>
+            }
+        </select>
+
+        <!-- Date range filter -->
+        <input type="date" name="from" class="form-control form-control-sm toolbar-input" style="width: 150px;" value="@(Model.From?.ToString("yyyy-MM-dd"))" onchange="this.form.submit();" />
+        <span class="small text-body-secondary">to</span>
+        <input type="date" name="to" class="form-control form-control-sm toolbar-input" style="width: 150px;" value="@(Model.To?.ToString("yyyy-MM-dd"))" onchange="this.form.submit();" />
+    </div>
+</form>
+
+<table class="ec-table">
     <thead>
-        <tr><th>Date</th><th>Description</th><th>Category</th><th class="text-end">Amount</th><th></th></tr>
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th class="text-end">Amount</th>
+            <th></th>
+        </tr>
     </thead>
     <tbody>
-    @foreach (var e in Model)
+    @foreach (var e in Model.Items)
     {
         <tr>
             <td>@e.Date.ToString("yyyy-MM-dd")</td>
-            <td>@e.Description</td>
+            <td class="fw-semibold">@e.Description</td>
             <td>@(e.Category ?? "—")</td>
-            <td class="text-end">@e.Amount.ToString("N2")</td>
-            <td class="text-end">
-                <form asp-action="Delete" asp-route-id="@e.Id" method="post" onsubmit="return confirm('Delete this expense?');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                </form>
+            <td class="text-end">@e.Amount.ToString("₱#,##0.00")</td>
+            <td class="text-end text-nowrap">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <form asp-action="Delete" asp-route-id="@e.Id" method="post" class="d-inline" data-confirm="Delete this expense?">
+                                <button type="submit" class="dropdown-item text-danger" style="background:none; border:none; padding:0.25rem 1rem; text-align:left; width:100%;">
+                                    <i class="bi bi-trash me-2"></i> Delete
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </td>
         </tr>
     }
     </tbody>
 </table>
-@if (!Model.Any()) { <p class="text-body-secondary">No expenses yet.</p> }
+
+@if (!Model.Items.Any())
+{
+    <p class="text-body-secondary text-center py-3">No expenses yet.</p>
+}
+else
+{
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Expenses pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["category"] = Model.Category,
+            ["from"] = Model.From,
+            ["to"] = Model.To
+        }
+    }' />
+}

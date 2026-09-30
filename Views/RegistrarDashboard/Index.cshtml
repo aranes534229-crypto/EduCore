@@ -1,0 +1,30 @@
+@model EduCore.ViewModels.RegistrarDashboardVM
+@{
+    ViewData["Title"] = "Registrar Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h1 class="ec-page-title mb-4">Registrar Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.NewInquiries</div><div class="ec-metric-label">New Inquiries</div></div></div>
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.ApprovedInquiries</div><div class="ec-metric-label">Approved</div></div></div>
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.RejectedInquiries</div><div class="ec-metric-label">Rejected</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.UnscheduledEnrollments</div><div class="ec-metric-label">Unscheduled Enrollments</div></div></div>
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.ScheduledEnrollments</div><div class="ec-metric-label">Scheduled</div></div></div>
+    <div class="col-md-4"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TotalEnrollments</div><div class="ec-metric-label">Total Enrollments</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.ActiveSections</div><div class="ec-metric-label">Active Sections</div></div></div>
+    <div class="col-md-6"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.EnrolledStudents</div><div class="ec-metric-label">Enrolled Students</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Inquiries" asp-action="Index">Review Inquiries</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Enrollments" asp-action="Index">Manage Enrollments</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Sections" asp-action="Index">Class Schedule</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Students" asp-action="Index">Students</a></div>
+</div>

@@ -1,6 +1,11 @@
 @model IEnumerable<EduCore.Models.Entities.Section>
-@{ ViewData["Title"] = "Gradebook"; ViewData["Active"] = "Gradebook"; }
-<h1 class="h3 mb-3">Gradebook</h1>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gradebook";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Gradebook</h1>
+</div>
 
 @foreach (var s in Model)
 {
@@ -27,4 +32,4 @@
         </ul>
     </div>
 }
-@if (!Model.Any()) { <p class="text-body-secondary">No sections available to you.</p> }
+@if (!Model.Any()) { <p class="text-body-secondary mt-3">No sections available to you.</p> }

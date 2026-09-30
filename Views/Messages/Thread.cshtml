@@ -30,7 +30,7 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-baseline">
                         <small class="fw-semibold text-body-secondary">
-                            @(isFromMe ? "You" : otherParty) — @m.SentAt.ToLocalTime().ToString("MMM d, h:mm tt")
+                            @(isFromMe ? "You" : otherParty) — @m.SentAt.ToLocalTime().ToString("MMM d, yyyy HH:mm")
                         </small>
                         @if (isFromMe)
                         {

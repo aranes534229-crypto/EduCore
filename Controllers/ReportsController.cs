@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -29,7 +30,9 @@ public class ReportsController : Controller
     }
 
     private async Task<int?> MyFacultyIdAsync() =>
-        (await _db.Faculty.FirstOrDefaultAsync(f => f.ApplicationUserId == _users.GetUserId(User)))?.Id;
+        (await _db.Faculty
+            .Include(f => f.Person)
+            .FirstOrDefaultAsync(f => f.Person!.User!.Id == _users.GetUserId(User)))?.Id;
 
     // GET /Reports
     [HttpGet]
@@ -75,45 +78,97 @@ public class ReportsController : Controller
     // GET /Reports/Enrollment  (Admin | Registrar)
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
     [HttpGet]
-    public async Task<IActionResult> Enrollment(int? schoolYearId)
+    public async Task<IActionResult> Enrollment(string? q, int? schoolYearId, int page = 1, int pageSize = 10)
     {
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
         var years = await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync();
         var year = schoolYearId.HasValue
             ? await _db.SchoolYears.FirstOrDefaultAsync(y => y.Id == schoolYearId)
             : years.FirstOrDefault(y => y.IsActive) ?? years.FirstOrDefault();
 
-        ViewBag.SchoolYears = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(years, "Id", "Name", year?.Id);
-        ViewBag.SelectedYear = year?.Id;
-        ViewBag.YearName = year?.Name ?? "(none)";
+        var vm = new EnrollmentReportVM
+        {
+            SchoolYears = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(years, "Id", "Name", year?.Id),
+            SelectedYear = year?.Id,
+            YearName = year?.Name ?? "(none)",
+            Search = q,
+            Totals = new Dictionary<EnrollmentStatus, int>()
+        };
 
         if (year is null)
         {
-            ViewBag.Totals = new Dictionary<EnrollmentStatus, int>();
-            ViewBag.Total = 0;
-            return View(new List<Enrollment>());
+            vm.Total = 0;
+            return View(vm);
         }
 
         // Group the filtered set by status; status counts come from the grouped rows below.
-        var items = await _db.Enrollments
+        var query = _db.Enrollments
             .Where(e => e.SchoolYearId == year.Id)
-            .Include(e => e.Student)
+            .Include(e => e.Student).ThenInclude(s => s.Person)
             .Include(e => e.GradeLevel)
-            .OrderBy(e => e.GradeLevel.SortOrder).ThenBy(e => e.Student.LastName)
+            .AsQueryable();
+
+        // Search filter — FullName is a computed property — not translatable by EF Core,
+        // so search the mapped columns (StudentNumber, Person.FirstName/LastName) instead.
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(e =>
+                e.Student.StudentNumber.ToLower().Contains(term) ||
+                e.Student.Person!.FirstName.ToLower().Contains(term) ||
+                e.Student.Person!.LastName.ToLower().Contains(term));
+        }
+
+        // Order
+        query = query
+            .OrderBy(e => e.GradeLevel.SortOrder)
+            .ThenBy(e => e.Student.Person!.LastName)
+            .ThenBy(e => e.Student.Person!.FirstName);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        ViewBag.Totals = Enum.GetValues<EnrollmentStatus>()
-            .ToDictionary(s => s, s => items.Count(i => i.Status == s));
-        ViewBag.Total = items.Count;
+        // Tiles reflect the selected year for ALL its enrollments, regardless of search/paging.
+        var yearItems = await _db.Enrollments
+            .Where(e => e.SchoolYearId == year.Id)
+            .Select(e => e.Status)
+            .ToListAsync();
 
-        return View(items);
+        vm.Items = items;
+        vm.Page = page;
+        vm.PageSize = pageSize;
+        vm.TotalCount = totalCount;
+        vm.Totals = Enum.GetValues<EnrollmentStatus>()
+            .ToDictionary(s => s, s => yearItems.Count(i => i == s));
+        vm.Total = yearItems.Count;
+
+        return View(vm);
     }
 
     // GET /Reports/Money  (Admin | Finance)
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Finance}")]
     [HttpGet]
-    public async Task<IActionResult> Money()
+    public async Task<IActionResult> Money(string? q, int page = 1, int pageSize = 10)
     {
-        // ponytail: one SumAsync per figure; these tables are small so extra round-trips < a grouped query here.
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Global figures stay global — computed from ALL invoices, not the filtered set.
         var invoices = await _db.Invoices
             .Include(i => i.Student)
             .Include(i => i.Lines)
@@ -127,13 +182,47 @@ public class ReportsController : Controller
         var totalOutstanding = invoices.Sum(i => i.Balance);
         var totalExpenses = (decimal?)(double?)await _db.Expenses.SumAsync(e => (double?)e.Amount) ?? 0m;
 
-        ViewBag.TotalBilled = totalBilled;
-        ViewBag.TotalCollected = totalCollected;
-        ViewBag.TotalOutstanding = totalOutstanding;
-        ViewBag.TotalExpenses = totalExpenses;
-        ViewBag.Net = totalOutstanding - totalExpenses;
+        // Search filter — FullName is a computed property — not translatable by EF Core,
+        // so search the mapped columns (Invoice.Number, StudentNumber, Person names) instead.
+        var filtered = invoices.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            filtered = filtered.Where(i =>
+                i.Number != null && i.Number.ToLower().Contains(term) ||
+                i.Student.StudentNumber.ToLower().Contains(term) ||
+                i.Student.Person!.FirstName.ToLower().Contains(term) ||
+                i.Student.Person!.LastName.ToLower().Contains(term));
+        }
 
-        return View(invoices);
+        // Total count before paging
+        var list = filtered.ToList();
+        var totalCount = list.Count;
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = list
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var vm = new MoneyReportVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            TotalBilled = totalBilled,
+            TotalCollected = totalCollected,
+            TotalOutstanding = totalOutstanding,
+            TotalExpenses = totalExpenses
+        };
+        return View(vm);
     }
 
     // GET /Reports/ClassResults  (Admin | Faculty)
@@ -169,7 +258,9 @@ public class ReportsController : Controller
 
             var students = await _db.Students
                 .Where(s => s.SectionId == chosen.SectionId)
-                .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
+                .Include(s => s.Person)
+                .OrderBy(s => s.Person!.LastName)
+                .ThenBy(s => s.Person!.FirstName)
                 .ToListAsync();
             var grades = await _db.Grades
                 .Where(g => g.SectionSubjectId == chosen.Id)

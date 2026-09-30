@@ -1,14 +1,16 @@
 @using EduCore.Models.Entities
-@model IEnumerable<Announcement>
+@model AnnouncementsIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Announcements";
 }
+
+<!-- Title row -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Announcements</h1>
 </div>
 
-@if (ViewBag.CanPost)
+@if (Model.CanPost)
 {
     <div class="ec-card p-4 mb-4 col-md-7 col-12">
         <form asp-action="Create" method="post">
@@ -20,17 +22,45 @@
     </div>
 }
 
-@if (!Model.Any())
-{
-    <p class="text-body-secondary">No announcements yet.</p>
-}
-@foreach (var a in Model)
-{
-    <div class="ec-card p-4 mb-3">
-        <div class="d-flex justify-content-between align-items-baseline">
-            <h5 class="mb-1">@a.Title</h5>
-            <span class="text-body-secondary small">@a.PostedAt.ToLocalTime().ToString("MMM d, yy") · @a.AuthorName</span>
+<!-- ooolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
         </div>
-        <p class="mb-0">@a.Body</p>
     </div>
+</form>
+
+@if (!Model.Items.Any())
+{
+    <p class="text-body-secondary text-center py-3">No announcements yet.</p>
+}
+else
+{
+    foreach (var a in Model.Items)
+    {
+        <div class="ec-card p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-baseline">
+                <h5 class="mb-1">@a.Title</h5>
+                <span class="text-body-secondary small">@a.PostedAt.ToLocalTime().ToString("MMM d, yy") · @a.AuthorName</span>
+            </div>
+            <p class="mb-0">@a.Body</p>
+        </div>
+    }
+
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Announcements pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search
+        }
+    }' />
 }

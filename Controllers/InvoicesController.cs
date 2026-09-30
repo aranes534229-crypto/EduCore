@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -16,17 +17,85 @@ public class InvoicesController : Controller
     private readonly AppDbContext _db;
     public InvoicesController(AppDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, InvoicePaymentStatus? status, int? schoolYearId, int page = 1, int pageSize = 10)
     {
-        var list = await _db.Invoices
-            .Include(i => i.Student)
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query — Lines and Payments are needed for Total/Paid/Balance
+        var query = _db.Invoices
+            .Include(i => i.Student).ThenInclude(s => s.Person)
             .Include(i => i.SchoolYear)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
-            .OrderByDescending(i => i.Number)
+            .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            // FullName is a computed property — not translatable by EF Core, so search
+            // the mapped columns (StudentNumber, Person.FirstName/LastName) instead.
+            query = query.Where(i =>
+                i.Student.StudentNumber.ToLower().Contains(term) ||
+                i.Number != null && i.Number.ToLower().Contains(term) ||
+                i.Student.Person!.FirstName.ToLower().Contains(term) ||
+                i.Student.Person!.LastName.ToLower().Contains(term));
+        }
+
+        // Status filter — payment state is derived from the balance, translated to SQL
+        // via aggregates since InvoicePaymentStatus is not a stored column.
+        if (status.HasValue)
+        {
+            query = status.Value switch
+            {
+                InvoicePaymentStatus.Unpaid => query.Where(i => i.Payments.Sum(p => p.Amount) == 0m),
+                InvoicePaymentStatus.PaidInFull => query.Where(i =>
+                    i.Lines.Sum(l => l.Amount) > 0m &&
+                    i.Payments.Sum(p => p.Amount) >= i.Lines.Sum(l => l.Amount)),
+                _ => query.Where(i =>
+                    i.Payments.Sum(p => p.Amount) > 0m &&
+                    i.Payments.Sum(p => p.Amount) < i.Lines.Sum(l => l.Amount)),
+            };
+        }
+
+        // School year filter
+        if (schoolYearId.HasValue)
+        {
+            query = query.Where(i => i.SchoolYearId == schoolYearId.Value);
+        }
+
+        // Order
+        query = query.OrderByDescending(i => i.Id);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return View(list);
+        var vm = new InvoicesIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            Status = status,
+            SchoolYearId = schoolYearId,
+            SchoolYears = new SelectList(
+                await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name")
+        };
+        return View(vm);
     }
 
     public async Task<IActionResult> Create()
@@ -103,7 +172,7 @@ public class InvoicesController : Controller
         // Invoice.Balance (Total - Paid) can never go negative.
         if (p.Amount > inv.Balance)
         {
-            TempData["Error"] = $"Payment exceeds the remaining balance of {inv.Balance.ToString("N2")}.";
+            TempData["Error"] = $"Payment exceeds the remaining balance of ₱{inv.Balance.ToString("N2")}.";
             return RedirectToAction(nameof(Details), new { id });
         }
         p.Id = 0;

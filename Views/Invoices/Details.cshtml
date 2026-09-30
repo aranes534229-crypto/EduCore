@@ -4,16 +4,13 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = $"Tuition & Billing — {Model.Student.FullName}";
 }
-@if (TempData["Error"] is string error)
-{
-    <div class="alert alert-danger py-2">@error</div>
-}
+<partial name="_TempAlert" />
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Tuition & Billing — @Model.Student.FullName</h2>
     <div class="text-end fs-5">
         <span class="text-body-secondary">Balance:</span>
-        <span class="@(Model.Balance > 0 ? "text-danger fw-bold" : "text-success fw-bold")">@Model.Balance.ToString("N2")</span>
+        <span class="@(Model.Balance > 0 ? "text-danger fw-bold" : "text-success fw-bold")">@Model.Balance.ToString("₱#,##0.00")</span>
     </div>
 </div>
 <p class="text-body-secondary">Invoice @(Model.Number ?? "—") · School year: @Model.SchoolYear.Name · Issued @Model.IssuedDate.ToString("yyyy-MM-dd")</p>
@@ -25,12 +22,12 @@
     {
         <tr>
             <td>@l.Description</td>
-            <td class="text-end">@l.Amount.ToString("N2")</td>
+            <td class="text-end">@l.Amount.ToString("₱#,##0.00")</td>
         </tr>
     }
         <tr class="fw-semibold">
             <td>Total</td>
-            <td class="text-end">@Model.Total.ToString("N2")</td>
+            <td class="text-end">@Model.Total.ToString("₱#,##0.00")</td>
         </tr>
     </tbody>
 </table>
@@ -53,7 +50,7 @@
             <td>@p.Date.ToString("yyyy-MM-dd")</td>
             <td>@p.Method</td>
             <td>@(p.Reference ?? "—")</td>
-            <td class="text-end">@p.Amount.ToString("N2")</td>
+            <td class="text-end">@p.Amount.ToString("₱#,##0.00")</td>
             <td class="text-nowrap"><a asp-action="Receipt" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Receipt</a></td>
         </tr>
     }
@@ -61,7 +58,7 @@
 </table>
 @if (Model.Payments.Count == 0) { <p class="text-body-secondary">No payments yet.</p> }
 
-<h5 class="mt-4">Record payment</h5>
+<h5 class="mt-4">Record Payment</h5>
 <form asp-action="AddPayment" asp-route-id="@Model.Id" method="post" class="row g-3 col-md-6 col-12">
     <div class="col-md-3">
         <label for="pf_Amount" class="form-label">Amount</label>
@@ -85,10 +82,13 @@
         <input name="p.Reference" id="pf_Reference" class="form-control" />
     </div>
     <div>
-        <button type="submit" class="btn btn-primary mt-3">Record payment</button>
+        <button type="submit" class="btn btn-primary mt-3">Record Payment</button>
     </div>
 </form>
 
 <div class="mt-4">
     <a asp-action="Index" class="btn btn-link">Back to Tuition & Billing</a>
 </div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

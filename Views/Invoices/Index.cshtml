@@ -1,14 +1,46 @@
-@model IEnumerable<EduCore.Models.Entities.Invoice>
+@using EduCore.Models.Entities
+@model InvoicesIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Tuition & Billing";
 }
+
+<!-- Title row -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Tuition & Billing</h2>
-    <a asp-action="Create" class="btn btn-primary">New invoice</a>
+    <h1 class="h3 mb-0">Tuition & Billing</h1>
+    <a asp-action="Create" class="btn btn-primary">New Invoice</a>
 </div>
 
-<table class="table table-hover align-middle">
+<!-- Toolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Payment status filter -->
+        <select name="status" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues(typeof(InvoicePaymentStatus)).Cast<InvoicePaymentStatus>())
+            {
+                <option value="@((int)s)" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+
+        <!-- School year filter -->
+        <select name="schoolYearId" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All school years</option>
+            @foreach (var y in Model.SchoolYears)
+            {
+                <option value="@y.Value" selected="@(Model.SchoolYearId?.ToString() == y.Value)">@y.Text</option>
+            }
+        </select>
+    </div>
+</form>
+
+<table class="ec-table">
     <thead>
         <tr>
             <th>Invoice #</th>
@@ -22,25 +54,62 @@
         </tr>
     </thead>
     <tbody>
-    @foreach (var i in Model)
+    @foreach (var i in Model.Items)
     {
         <tr>
-            <td>@(i.Number ?? "—")</td>
-            <td>@i.Student.FullName</td>
+            <td class="cell-id">@(i.Number ?? "—")</td>
+            <td class="fw-semibold">@i.Student.FullName</td>
             <td>@i.SchoolYear.Name</td>
             <td>@i.IssuedDate.ToString("yyyy-MM-dd")</td>
-            <td class="text-end">@i.Total.ToString("N2")</td>
-            <td class="text-end">@i.Paid.ToString("N2")</td>
-            <td class="text-end @(i.Balance > 0 ? "text-danger fw-semibold" : "")">@i.Balance.ToString("N2")</td>
-            <td class="text-end">
-                <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View</a>
-                <form class="d-inline" asp-action="Delete" asp-route-id="@i.Id" method="post"
-                      onsubmit="return confirm('Delete this invoice?');">
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
-                </form>
+            <td class="text-end">@i.Total.ToString("₱#,##0.00")</td>
+            <td class="text-end">@i.Paid.ToString("₱#,##0.00")</td>
+            <td class="text-end @(i.Balance > 0 ? "text-danger fw-semibold" : "")">@i.Balance.ToString("₱#,##0.00")</td>
+            <td class="text-end text-nowrap">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" asp-action="Details" asp-route-id="@i.Id">
+                                <i class="bi bi-eye me-2"></i> View Details
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-action="Delete" asp-route-id="@i.Id" method="post" class="d-inline" data-confirm="Delete this invoice?">
+                                <button type="submit" class="dropdown-item text-danger" style="background:none; border:none; padding:0.25rem 1rem; text-align:left; width:100%;">
+                                    <i class="bi bi-trash me-2"></i> Delete
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </td>
         </tr>
     }
     </tbody>
 </table>
-@if (!Model.Any()) { <p class="text-body-secondary">No invoices yet. Create one.</p> }
+
+@if (!Model.Items.Any())
+{
+    <p class="text-body-secondary text-center py-3">No invoices yet. Create one.</p>
+}
+else
+{
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Invoices pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["status"] = Model.Status,
+            ["schoolYearId"] = Model.SchoolYearId
+        }
+    }' />
+}

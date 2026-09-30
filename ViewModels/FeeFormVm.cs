@@ -16,8 +16,7 @@ public class FeeLineItemVm
 {
     public int? Id { get; set; }
 
-    [Required(ErrorMessage = "A description is required.")]
-    public string Description { get; set; } = "";
+    public string? Description { get; set; }
 
     [Range(typeof(decimal), "0", "100000000", ErrorMessage = "Enter a valid amount.")]
     public decimal Amount { get; set; }

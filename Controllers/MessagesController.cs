@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -27,32 +28,45 @@ public class MessagesController : Controller
     // Parent → their linked child(ren).
     private async Task<List<Student>> MyStudentsAsync()
     {
-        // meId is null only for an unauthenticated caller; the role gates at the top of
-        // the controller reject anonymous users, so in practice this is non-null. Each
-        // branch below is null-safe regardless (empty result on null id).
         var meId = _users.GetUserId(User);
         if (User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Finance))
-            return await _db.Students.OrderBy(s => s.LastName).ToListAsync();
+            return await _db.Students
+                .Include(s => s.Person)
+                .OrderBy(s => s.Person!.LastName)
+                .ThenBy(s => s.Person!.FirstName)
+                .ToListAsync();
 
         if (User.IsInRole(AppRoles.Faculty))
         {
             var facultyIds = await _db.Faculty
-                .Where(f => f.ApplicationUserId == meId)
+                .Include(f => f.Person)
+                .Where(f => f.Person!.User!.Id == meId)
                 .Select(f => f.Id)
                 .ToListAsync();
             return await _db.Students
+                .Include(s => s.Person)
                 .Where(s => s.Section != null && s.Section.AdviserId != null && facultyIds.Contains(s.Section.AdviserId.Value))
-                .OrderBy(s => s.LastName)
+                .OrderBy(s => s.Person!.LastName)
+                .ThenBy(s => s.Person!.FirstName)
                 .ToListAsync();
         }
 
         // Parent
-        return await _db.Students.Where(s => s.ApplicationUserId == meId).ToListAsync();
+        return await _db.Students
+            .Include(s => s.Person)
+            .Where(s => s.Person!.User!.Id == meId)
+            .OrderBy(s => s.Person!.LastName)
+            .ThenBy(s => s.Person!.FirstName)
+            .ToListAsync();
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, string? direction, string? read, int page = 1, int pageSize = 10)
     {
-        var meId = _users.GetUserId(User);
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        var meId = _users.GetUserId(User)!;
         var students = await MyStudentsAsync();
         var studentIds = students.Select(s => s.Id).ToHashSet();
 
@@ -61,21 +75,72 @@ public class MessagesController : Controller
             .OrderByDescending(m => m.SentAt)
             .ToListAsync();
 
+        // Preserve mark-as-seen flow: mark ALL received unseen first, then filter/page
+        // in memory so the "New" badge logic stays identical.
         var receivedUnseen = msgs.Where(m => m.RecipientId == meId && !m.Seen).ToList();
         foreach (var m in receivedUnseen) m.Seen = true;
         if (receivedUnseen.Count > 0) await _db.SaveChangesAsync();
 
         var userIds = msgs.Select(m => m.SenderId).Concat(msgs.Select(m => m.RecipientId)).Distinct().ToList();
-        var nameById = (await _users.Users.Where(u => userIds.Contains(u.Id)).ToListAsync())
-            .ToDictionary(u => u.Id, u => u.DisplayName);
+        var nameById = (await _users.Users
+            .Include(u => u.Person)
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync())
+            .ToDictionary(u => u.Id, u => u.Person?.FullName ?? u.Email ?? "");
 
-        ViewBag.UserId = meId;
-        ViewBag.Names = nameById;
-        ViewBag.Students = students.ToDictionary(s => s.Id);
-        ViewBag.UnreadIds = receivedUnseen.Select(m => m.Id).ToHashSet();
-        // Finance reads the CRM but does not compose.
-        ViewBag.CanCompose = !User.IsInRole(AppRoles.Finance) && students.Count > 0;
-        return View(msgs);
+        // Search filter — FullName is computed, so match student names from the scoped
+        // set in memory, then keep messages about them or containing the term.
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            var matchingStudentIds = students
+                .Where(s => s.FullName.ToLower().Contains(term) || s.StudentNumber.ToLower().Contains(term))
+                .Select(s => s.Id)
+                .ToHashSet();
+            msgs = msgs.Where(m =>
+                m.Body.ToLower().Contains(term) || matchingStudentIds.Contains(m.StudentId))
+                .ToList();
+        }
+
+        // Direction filter (Received / Sent)
+        if (direction == "received") msgs = msgs.Where(m => m.RecipientId == meId).ToList();
+        else if (direction == "sent") msgs = msgs.Where(m => m.SenderId == meId).ToList();
+
+        // Read filter — narrows received messages by Seen state
+        if (read == "unread") msgs = msgs.Where(m => m.RecipientId == meId && !m.Seen).ToList();
+        else if (read == "read") msgs = msgs.Where(m => m.RecipientId == meId && m.Seen).ToList();
+
+        // Total count before paging
+        var totalCount = msgs.Count;
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = msgs
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var vm = new MessagesIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            Direction = direction,
+            Read = read,
+            UserId = meId,
+            Names = nameById,
+            Students = students.ToDictionary(s => s.Id),
+            UnreadIds = receivedUnseen.Select(m => m.Id).ToHashSet(),
+            // Finance reads the CRM but does not compose.
+            CanCompose = !User.IsInRole(AppRoles.Finance) && students.Count > 0
+        };
+        return View(vm);
     }
 
     [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent}")]
@@ -83,7 +148,7 @@ public class MessagesController : Controller
     {
         var students = await MyStudentsAsync();
         if (students.Count == 0) return RedirectToAction(nameof(Index));
-        ViewBag.Students = new SelectList(students.OrderBy(s => s.LastName), "Id", "FullName", studentId);
+        ViewBag.Students = new SelectList(students, "Id", "FullName", studentId);
         ViewBag.IsFaculty = User.IsInRole(AppRoles.Faculty);
         ViewBag.IsParent = User.IsInRole(AppRoles.Parent);
         return View();
@@ -109,11 +174,12 @@ public class MessagesController : Controller
 
         string? recipientId;
         if (User.IsInRole(AppRoles.Faculty) || User.IsInRole(AppRoles.Admin))
-            recipientId = student.ApplicationUserId; // the child's linked parent (or self for Admin)
+            recipientId = student.Person?.User?.Id; // the child's linked parent (or self for Admin)
         else // Parent → their child's adviser
             recipientId = await _db.Sections
                 .Where(s => s.Id == student.SectionId)
-                .Select(s => s.Adviser == null ? null : s.Adviser.ApplicationUserId)
+                .Include(s => s.Adviser).ThenInclude(a => a!.Person)
+                .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
                 .FirstOrDefaultAsync();
 
         if (string.IsNullOrEmpty(recipientId))
@@ -159,7 +225,10 @@ public class MessagesController : Controller
         var otherId = msgs.FirstOrDefault(m => m.RecipientId == meId)?.SenderId
                       ?? msgs.FirstOrDefault(m => m.SenderId == meId)?.RecipientId;
         if (otherId is not null)
-            otherId = (await _users.Users.Where(u => u.Id == otherId).Select(u => u.DisplayName).FirstOrDefaultAsync()) ?? otherId;
+        {
+            var otherUser = await _users.Users.Include(u => u.Person).FirstOrDefaultAsync(u => u.Id == otherId);
+            otherId = otherUser?.Person?.FullName ?? otherUser?.Email ?? otherId;
+        }
         ViewBag.OtherParty = otherId ?? "?";
         return View(msgs);
     }
@@ -179,7 +248,8 @@ public class MessagesController : Controller
 
         var recipientId = await _db.Sections
             .Where(s => s.Id == student.SectionId)
-            .Select(s => s.Adviser == null ? null : s.Adviser.ApplicationUserId)
+            .Include(s => s.Adviser).ThenInclude(a => a!.Person)
+            .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
             .FirstOrDefaultAsync();
         if (string.IsNullOrEmpty(recipientId))
         {
@@ -210,7 +280,7 @@ public class MessagesController : Controller
     private async Task<IActionResult> ComposeViewAsync(int? studentId = null)
     {
         var students = await MyStudentsAsync();
-        ViewBag.Students = new SelectList(students.OrderBy(s => s.LastName), "Id", "FullName", studentId);
+        ViewBag.Students = new SelectList(students, "Id", "FullName", studentId);
         ViewBag.IsFaculty = User.IsInRole(AppRoles.Faculty);
         ViewBag.IsParent = User.IsInRole(AppRoles.Parent);
         return View();

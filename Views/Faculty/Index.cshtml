@@ -1,31 +1,54 @@
-@model IEnumerable<EduCore.Models.Entities.Faculty>
+@model FacultyIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Faculty";
-    ViewData["Active"] = "Faculty";
 }
+
+<!-- Title row -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Faculty</h1>
     <a asp-action="Create" class="btn btn-primary">Add Teacher</a>
 </div>
 
+<!-- Toolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Status filter -->
+        <select name="isActive" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All statuses</option>
+            <option value="true" selected="@(Model.IsActive == true)">Active</option>
+            <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+        </select>
+    </div>
+</form>
+
 <table class="ec-table">
     <thead>
         <tr>
+            <th>Employee #</th>
             <th>Name</th>
             <th>Email</th>
             <th>Contact</th>
+            <th>Hired</th>
             <th>Status</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-    @foreach (var f in Model)
+    @foreach (var f in Model.Items)
     {
         <tr>
-            <td>@f.FullName</td>
+            <td class="cell-id">@f.EmployeeNumber</td>
+            <td class="fw-semibold">@f.FullName</td>
             <td>@f.Email</td>
             <td>@f.Contact</td>
+            <td>@f.HireDate.ToString("yyyy-MM-dd")</td>
             <td>
                 @if (f.IsActive)
                 {
@@ -36,19 +59,56 @@
                     <span class="badge text-bg-secondary">Inactive</span>
                 }
             </td>
-            <td class="text-end">
-                <a asp-action="Edit" asp-route-id="@f.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                <form asp-action="Delete" asp-route-id="@f.Id" method="post" class="d-inline"
-                      onsubmit="return confirm('Remove @f.FullName?');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                </form>
+            <td class="text-end text-nowrap">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" asp-action="Details" asp-route-id="@f.Id">
+                                <i class="bi bi-eye me-2"></i> View Details
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-action="Edit" asp-route-id="@f.Id">
+                                <i class="bi bi-pencil me-2"></i> Edit
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-action="Delete" asp-route-id="@f.Id" method="post" class="d-inline" data-confirm="Remove @f.FullName?">
+                                <button type="submit" class="dropdown-item text-danger" style="background:none; border:none; padding:0.25rem 1rem; text-align:left; width:100%;">
+                                    <i class="bi bi-trash me-2"></i> Remove
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </td>
         </tr>
     }
     </tbody>
 </table>
 
-@if (!Model.Any())
+@if (!Model.Items.Any())
 {
-    <p class="text-body-secondary">No teachers yet. Add one above.</p>
+    <p class="text-body-secondary text-center py-3">No teachers yet. Add one above.</p>
+}
+else
+{
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Faculty pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["isActive"] = Model.IsActive
+        }
+    }' />
 }

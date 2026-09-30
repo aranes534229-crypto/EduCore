@@ -1,5 +1,6 @@
 @model EduCore.ViewModels.FeeFormVm
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Edit fee";
 }
 
@@ -50,6 +51,7 @@
             {
                 <tr>
                     <td>
+                        <input type="hidden" asp-for="@Model.Items[i].Id" />
                         <input asp-for="@Model.Items[i].Description" class="form-control form-control-sm" placeholder="Tuition, Lab fee, etc." />
                         <span asp-validation-for="@Model.Items[i].Description" class="text-danger small"></span>
                     </td>
@@ -80,24 +82,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        var rowTemplate = $('#feeItems tr:last').clone();
-        rowTemplate.find('input').val('');
-        rowTemplate.find('input[type=checkbox]').prop('checked', true);
-
-        $('#addRow').on('click', function () {
-            var idx = $('#feeItems tr').length;
-            var row = rowTemplate.clone();
-            row.find('[name*="Description"]').attr('name', 'Items[' + idx + '].Description').val('');
-            row.find('[name*="Amount"]').attr('name', 'Items[' + idx + '].Amount').val('');
-            row.find('[name*="IsActive"]').attr('name', 'Items[' + idx + '].IsActive').prop('checked', true);
-            row.find('[name*="Id"]').remove();
-            row.find('.removeRow').off('click').on('click', function () { row.remove(); });
-            row.appendTo('#feeItems');
-        });
-
-        $('.removeRow').on('click', function () {
-            $(this).closest('tr').remove();
-        });
-    </script>
+    <script src="~/js/fees-items.js" asp-append-version="true"></script>
 }

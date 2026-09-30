@@ -16,16 +16,70 @@ public class FeesController : Controller
     private readonly AppDbContext _db;
     public FeesController(AppDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, int? gradeId, bool? isActive, int page = 1, int pageSize = 10)
     {
-        var fees = await _db.Fees
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query
+        var query = _db.Fees
             .Include(f => f.GradeLevel)
             .Include(f => f.Lines)
+            .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(f => f.Name.ToLower().Contains(term));
+        }
+
+        // Grade level filter
+        if (gradeId.HasValue)
+        {
+            query = query.Where(f => f.GradeLevelId == gradeId.Value);
+        }
+
+        // Status filter (Active / Inactive)
+        if (isActive.HasValue)
+        {
+            query = query.Where(f => f.IsActive == isActive.Value);
+        }
+
+        // Order — master list reads best grouped by grade, then name
+        query = query
             .OrderBy(f => f.GradeLevel != null)
             .ThenBy(f => f.GradeLevel!.SortOrder)
-            .ThenBy(f => f.Name)
+            .ThenBy(f => f.Name);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-        return View(fees);
+
+        var vm = new FeesIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            GradeLevelId = gradeId,
+            IsActive = isActive,
+            GradeLevels = new SelectList(
+                await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name")
+        };
+        return View(vm);
     }
 
     public async Task<IActionResult> Details(int id)
@@ -47,6 +101,8 @@ public class FeesController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(FeeFormVm vm)
     {
+        vm.Items = (vm.Items ?? []).Where(i => !string.IsNullOrWhiteSpace(i.Description)).ToList();
+
         if (!ModelState.IsValid)
         {
             await PopulateGradeLevelsAsync(vm.Fee.GradeLevelId);
@@ -57,7 +113,7 @@ public class FeesController : Controller
         {
             vm.Fee.Lines.Add(new FeeLine
             {
-                Description = item.Description,
+                Description = item.Description!.Trim(),
                 Amount = item.Amount,
                 IsActive = true
             });
@@ -108,6 +164,8 @@ public class FeesController : Controller
             .FirstOrDefaultAsync(f => f.Id == id);
         if (existing is null) return NotFound();
 
+        vm.Items = (vm.Items ?? []).Where(i => i.Id.HasValue || !string.IsNullOrWhiteSpace(i.Description)).ToList();
+
         if (!ModelState.IsValid)
         {
             await PopulateGradeLevelsAsync(vm.Fee.GradeLevelId);
@@ -121,7 +179,7 @@ public class FeesController : Controller
 
         // Sync line items: update matched IDs, insert new, soft-delete removed.
         var incomingIds = vm.Items
-            .Where(i => i.Id.HasValue && i.IsActive)
+            .Where(i => i.Id.HasValue && i.IsActive && !string.IsNullOrWhiteSpace(i.Description))
             .Select(i => i.Id!.Value)
             .ToHashSet();
 
@@ -130,19 +188,26 @@ public class FeesController : Controller
             var line = existing.Lines.FirstOrDefault(l => l.Id == item.Id!.Value);
             if (line is not null)
             {
-                line.Description = item.Description;
-                line.Amount = item.Amount;
-                line.IsActive = item.IsActive;
+                if (string.IsNullOrWhiteSpace(item.Description))
+                {
+                    line.IsActive = false;
+                }
+                else
+                {
+                    line.Description = item.Description.Trim();
+                    line.Amount = item.Amount;
+                    line.IsActive = item.IsActive;
+                }
             }
         }
 
         // Insert new line items (no Id = new).
-        foreach (var item in vm.Items.Where(i => !i.Id.HasValue && i.IsActive))
+        foreach (var item in vm.Items.Where(i => !i.Id.HasValue && i.IsActive && !string.IsNullOrWhiteSpace(i.Description)))
         {
             existing.Lines.Add(new FeeLine
             {
                 FeeId = existing.Id,
-                Description = item.Description,
+                Description = item.Description!.Trim(),
                 Amount = item.Amount,
                 IsActive = true
             });

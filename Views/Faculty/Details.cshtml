@@ -2,7 +2,6 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Teacher";
-    ViewData["Active"] = "Faculty";
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">@Model.FullName</h1>
@@ -15,7 +14,10 @@
 <div class="ec-card p-4">
     <dl class="row mb-0">
         <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@Model.Email</dd>
-        <dt class="col-sm-3">Contact</dt><dd class="col-sm-9">@Model.Contact</dd>
+        <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@Model.Contact</dd>
+        <dt class="col-sm-3">Address</dt><dd class="col-sm-9">@Model.Person?.Address</dd>
+        <dt class="col-sm-3">Employee #</dt><dd class="col-sm-9">@Model.EmployeeNumber</dd>
+        <dt class="col-sm-3">Hire Date</dt><dd class="col-sm-9">@Model.HireDate.ToString("MMM dd, yyyy")</dd>
         <dt class="col-sm-3">Status</dt>
         <dd class="col-sm-9">
             @if (Model.IsActive) { <span class="badge text-bg-success">Active</span> }
@@ -23,7 +25,7 @@
         </dd>
         <dt class="col-sm-3">Login</dt>
         <dd class="col-sm-9">
-            @if (Model.ApplicationUserId is null)
+            @if (Model.Person?.User is null)
             {
                 <span class="text-body-secondary">No login account</span>
             }
@@ -36,7 +38,7 @@
 </div>
 
 <div class="mt-4 pt-3 border-top">
-    <form asp-action="Delete" method="post" onsubmit="return confirm('Remove @Model.FullName?');">
+    <form asp-action="Delete" method="post" data-confirm="Remove @Model.FullName?">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
         <button type="submit" class="btn btn-sm btn-outline-danger">Remove Teacher</button>

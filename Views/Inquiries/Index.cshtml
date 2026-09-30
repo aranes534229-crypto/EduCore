@@ -1,14 +1,45 @@
 @using EduCore.Models.Entities
 @using Microsoft.AspNetCore.Mvc.Rendering
-@model IEnumerable<Inquiry>
+@model InquiriesIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Inquiries";
     var names = (Dictionary<string, string>)ViewBag.Names;
 }
+
+<!-- Title row -->
 <div class="mb-3">
     <h1 class="h3 mb-0">Inquiries</h1>
 </div>
+
+<!-- ooolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Status filter -->
+        <select name="status" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues(typeof(InquiryStatus)).Cast<InquiryStatus>())
+            {
+                <option value="@((int)s)" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+
+        <!-- Grade level filter -->
+        <select name="gradeId" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All grades</option>
+            @foreach (var g in Model.GradeLevels)
+            {
+                <option value="@g.Value" selected="@(Model.GradeLevelId?.ToString() == g.Value)">@g.Text</option>
+            }
+        </select>
+    </div>
+</form>
 
 <table class="ec-table">
     <thead>
@@ -24,16 +55,15 @@
         </tr>
     </thead>
     <tbody>
-    @foreach (var i in Model)
+    @foreach (var i in Model.Items)
     {
         <tr>
-            <td>@i.InquiryNumber</td>
+            <td class="cell-id">@i.InquiryNumber</td>
             <td class="fw-semibold">@i.StudentName</td>
             <td>@i.GradeLevel.Name</td>
             <td>
                 @i.ContactEmail<br />
                 <span class="small text-break">@(i.InternalNotes ?? "")</span>
-                @* parent origin is tracked via CreatedByUserId; no visual badge *@
             </td>
             <td>@i.DateCreated.ToString("MMM d")</td>
             <td><span class="badge @i.StatusClass">@i.Status</span></td>
@@ -42,34 +72,64 @@
                 {
                     <div class="small">@assignedName</div>
                 }
+                else
+                {
+                    <span class="text-muted">— Unassigned —</span>
+                }
             </td>
             <td class="text-end text-nowrap">
-                <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">View</a>
-                @if (i.ConvertedStudentId == null && i.Status != InquiryStatus.Rejected)
-                {
-                    <form asp-action="Convert" asp-route-id="@i.Id" method="post" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                    </form>
-                    <details class="d-inline">
-                        <summary class="btn btn-sm btn-outline-danger">Reject</summary>
-                        <div class="ec-card p-2 mt-1 text-start" style="min-width: 18rem;">
-                            <form asp-action="Reject" asp-route-id="@i.Id" method="post">
-                                <textarea name="reason" class="form-control form-control-sm" required
-                                          placeholder="Reason for rejection"></textarea>
-                                <button type="submit" class="btn btn-sm btn-danger mt-1">Confirm reject</button>
-                            </form>
-                        </div>
-                    </details>
-                }
-                @if (User.IsInRole("Admin"))
-                {
-                    <form asp-action="Delete" asp-route-id="@i.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this inquiry?');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
-                }
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" asp-action="Details" asp-route-id="@i.Id">
+                                <i class="bi bi-eye me-2"></i> View Details
+                            </a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-action="Delete" asp-route-id="@i.Id" method="post" class="d-inline" data-confirm="Delete this inquiry?">
+                                    <button type="submit" class="dropdown-item text-danger" style="background:none; border:none; padding:0.25rem 1rem; text-align:left; width:100%;">
+                                        <i class="bi bi-trash me-2"></i> Delete
+                                    </button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                </div>
             </td>
         </tr>
     }
     </tbody>
 </table>
-@if (!Model.Any()) { <p class="text-body-secondary">No inquiries yet.</p> }
+
+@if (!Model.Items.Any())
+{
+    <p class="text-body-secondary text-center py-3">No inquiries yet.</p>
+}
+else
+{
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Inquiries pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["status"] = Model.Status,
+            ["gradeId"] = Model.GradeLevelId
+        }
+    }' />
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

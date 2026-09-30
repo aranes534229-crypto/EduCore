@@ -22,7 +22,7 @@
         @if (!Model.IsSubmitted)
         {
             <form asp-action="SubmitToFinance" asp-route-id="@Model.Id" method="post"
-                  onsubmit="return confirm('Submit this roster to Finance for billing? No further changes can be made.');">
+                  data-confirm="Submit this roster to Finance for billing? No further changes can be made.">
                 <button class="btn btn-primary" @(Model.Students.Count == 0 ? "disabled" : "")>
                     Submit to Finance
                 </button>

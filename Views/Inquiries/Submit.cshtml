@@ -6,6 +6,8 @@
 }
 <h1 class="h3 mb-4">Apply for enrollment</h1>
 
+<partial name="_TempAlert" />
+
 <form asp-action="Submit" method="post" enctype="multipart/form-data">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -64,14 +66,9 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary mt-4">Submit application</button>
+    <button type="submit" class="btn btn-primary mt-4">Submit Application</button>
     <a asp-action="MyInquiries" class="btn btn-link mt-4">Cancel</a>
 </form>
-
-@if (TempData["Info"] != null)
-{
-    <div class="alert alert-success mt-3">@TempData["Info"]</div>
-}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

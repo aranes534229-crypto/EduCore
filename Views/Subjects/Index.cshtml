@@ -2,17 +2,13 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Subjects";
-    ViewData["Active"] = "Subjects";
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Subjects</h1>
     <a asp-action="Create" class="btn btn-primary">New Subject</a>
 </div>
 
-@if (TempData["Error"] is not null)
-{
-    <div class="alert alert-warning py-2">@TempData["Error"]</div>
-}
+<partial name="_TempAlert" />
 
 <table class="ec-table">
     <thead><tr><th>Code</th><th>Name</th><th></th></tr></thead>
@@ -24,7 +20,7 @@
             <td>@s.Name</td>
             <td class="text-end">
                 <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"
-                      onsubmit="return confirm('Delete @s.Name?');">
+                      data-confirm="Delete @s.Name?">
                     <button class="btn btn-sm btn-outline-danger">Delete</button>
                 </form>
             </td>

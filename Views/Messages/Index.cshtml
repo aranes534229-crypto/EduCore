@@ -1,34 +1,56 @@
 @using EduCore.Models.Entities
-@model IEnumerable<Message>
+@model MessagesIndexVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Messages";
-    var names = (Dictionary<string, string>)ViewBag.Names;
-    var students = (Dictionary<int, Student>)ViewBag.Students;
-    var unread = (HashSet<int>)ViewBag.UnreadIds;
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Messages</h1>
-    @if (ViewBag.CanCompose)
+    @if (Model.CanCompose)
     {
-        <a asp-action="Create" class="btn btn-primary">New message</a>
+        <a asp-action="Create" class="btn btn-primary">New Message</a>
     }
 </div>
 
-@if (!Model.Any())
+<!-- ooolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Direction filter -->
+        <select name="direction" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All messages</option>
+            <option value="received" selected="@(Model.Direction == "received")">Received</option>
+            <option value="sent" selected="@(Model.Direction == "sent")">Sent</option>
+        </select>
+
+        <!-- Read filter -->
+        <select name="read" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">Read & unread</option>
+            <option value="unread" selected="@(Model.Read == "unread")">Unread</option>
+            <option value="read" selected="@(Model.Read == "read")">Read</option>
+        </select>
+    </div>
+</form>
+
+@if (!Model.Items.Any())
 {
-    <p class="text-body-secondary">No messages yet.</p>
+    <p class="text-body-secondary text-center py-3">No messages yet.</p>
 }
 else
 {
-    foreach (var m in Model)
+    foreach (var m in Model.Items)
     {
-        var about = students.TryGetValue(m.StudentId, out var s) ? s.FullName : "—";
-        var isFromMe = m.SenderId == (string)ViewBag.UserId;
+        var about = Model.Students.TryGetValue(m.StudentId, out var s) ? s.FullName : "—";
+        var isFromMe = m.SenderId == Model.UserId;
         var other = isFromMe
-            ? names.GetValueOrDefault(m.RecipientId, "?")
-            : names.GetValueOrDefault(m.SenderId, "?");
-        var isNew = unread.Contains(m.Id);
+            ? Model.Names.GetValueOrDefault(m.RecipientId, "?")
+            : Model.Names.GetValueOrDefault(m.SenderId, "?");
+        var isNew = Model.UnreadIds.Contains(m.Id);
         <div class="ec-card p-4 mb-3">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <a asp-action="Thread" asp-route-studentId="@m.StudentId" class="text-decoration-none fw-semibold">
@@ -44,4 +66,20 @@ else
             <a asp-action="Thread" asp-route-studentId="@m.StudentId" class="small">Reply</a>
         </div>
     }
+
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Messages pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["direction"] = Model.Direction,
+            ["read"] = Model.Read
+        }
+    }' />
 }

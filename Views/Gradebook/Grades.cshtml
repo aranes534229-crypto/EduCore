@@ -1,5 +1,6 @@
 @model List<EduCore.ViewModels.GradeRowVM>
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Grades";
     var ss = (EduCore.Models.Entities.SectionSubject)ViewBag.Ss;
     var names = (Dictionary<int, string>)ViewBag.StudentNames;
@@ -10,13 +11,10 @@
 </div>
 <p class="text-body-secondary">@ss.Section.Name · @(ss.Faculty?.FullName ?? "—")</p>
 
-@if (TempData["Saved"] is not null)
-{
-    <div class="alert alert-success py-2">@TempData["Saved"]</div>
-}
+<partial name="_TempAlert" />
 
 <form asp-action="Grades" asp-route-sectionSubjectId="@ss.Id" method="post">
-    <table class="table align-middle">
+    <table class="ec-table">
         <thead><tr><th style="width:40%">Student</th><th style="width:12%">Score</th><th>Remarks</th></tr></thead>
         <tbody>
         @for (int i = 0; i < Model.Count; i++)
@@ -34,10 +32,13 @@
     </table>
     @if (Model.Any())
     {
-        <button type="submit" class="btn btn-primary">Save grades</button>
+        <button type="submit" class="btn btn-primary">Save Grades</button>
     }
     else
     {
-        <p class="text-body-secondary">No students in this section yet.</p>
+        <p class="text-body-secondary mt-3">No students in this section yet.</p>
     }
 </form>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

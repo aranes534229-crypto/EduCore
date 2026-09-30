@@ -14,14 +14,14 @@
     <h5 class="mt-3 mb-2">Child's information</h5>
     <div class="row g-3">
         <div class="col-md-6">
-            <label asp-for="FirstName" class="form-label">First name</label>
-            <input asp-for="FirstName" class="form-control" />
-            <span asp-validation-for="FirstName" class="text-danger small"></span>
+            <label asp-for="Person.FirstName" class="form-label">First name</label>
+            <input asp-for="Person.FirstName" class="form-control" />
+            <span asp-validation-for="Person.FirstName" class="text-danger small"></span>
         </div>
         <div class="col-md-6">
-            <label asp-for="LastName" class="form-label">Last name</label>
-            <input asp-for="LastName" class="form-control" />
-            <span asp-validation-for="LastName" class="text-danger small"></span>
+            <label asp-for="Person.LastName" class="form-label">Last name</label>
+            <input asp-for="Person.LastName" class="form-control" />
+            <span asp-validation-for="Person.LastName" class="text-danger small"></span>
         </div>
     </div>
     <div class="mb-3">
@@ -29,8 +29,8 @@
         <input asp-for="BirthDate" type="date" class="form-control" />
     </div>
     <div class="mb-3">
-        <label asp-for="Address" class="form-label">Home address</label>
-        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+        <label asp-for="Person.Address" class="form-label">Home address</label>
+        <textarea asp-for="Person.Address" class="form-control" rows="2"></textarea>
     </div>
     <div class="mb-3">
         <label asp-for="GuardianName" class="form-label">Parent/guardian name</label>
@@ -40,12 +40,12 @@
     <h5 class="mt-3 mb-2">Contact</h5>
     <div class="row g-3">
         <div class="col-md-6">
-            <label asp-for="GuardianContact" class="form-label">Phone number</label>
-            <input asp-for="GuardianContact" class="form-control" />
+            <label asp-for="Person.Phone" class="form-label">Phone number</label>
+            <input asp-for="Person.Phone" class="form-control" />
         </div>
         <div class="col-md-6">
-            <label asp-for="GuardianEmail" class="form-label">Email</label>
-            <input asp-for="GuardianEmail" class="form-control" />
+            <label asp-for="Person.Email" class="form-label">Email</label>
+            <input asp-for="Person.Email" class="form-control" />
         </div>
     </div>
 

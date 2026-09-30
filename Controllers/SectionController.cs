@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -19,17 +20,85 @@ public class SectionsController : Controller
 
     public SectionsController(AppDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, int? gradeId, int? schoolYearId, bool? isSubmitted, int page = 1, int pageSize = 10)
     {
-        var list = await _db.Sections
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query — Subjects and Students are needed for the per-row counts
+        var query = _db.Sections
             .Include(s => s.GradeLevel)
             .Include(s => s.Adviser)
             .Include(s => s.Subjects)
             .Include(s => s.Students)
+            .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            // Adviser.FullName is a computed property — not translatable by EF Core, so search
+            // the mapped columns (Section.Name, Person.FirstName/LastName) instead.
+            query = query.Where(s =>
+                s.Name.ToLower().Contains(term) ||
+                s.Adviser!.Person!.FirstName.ToLower().Contains(term) ||
+                s.Adviser!.Person!.LastName.ToLower().Contains(term));
+        }
+
+        // Grade level filter
+        if (gradeId.HasValue)
+        {
+            query = query.Where(s => s.GradeLevelId == gradeId.Value);
+        }
+
+        // School year filter
+        if (schoolYearId.HasValue)
+        {
+            query = query.Where(s => s.SchoolYearId == schoolYearId.Value);
+        }
+
+        // Submitted filter
+        if (isSubmitted.HasValue)
+        {
+            query = query.Where(s => s.IsSubmitted == isSubmitted.Value);
+        }
+
+        // Order
+        query = query
             .OrderBy(s => s.GradeLevel.SortOrder)
-            .ThenBy(s => s.Name)
+            .ThenBy(s => s.Name);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-        return View(list);
+
+        var vm = new SectionsIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            GradeLevelId = gradeId,
+            SchoolYearId = schoolYearId,
+            IsSubmitted = isSubmitted,
+            GradeLevels = new SelectList(
+                await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name"),
+            SchoolYears = new SelectList(
+                await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name")
+        };
+        return View(vm);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
@@ -166,20 +235,51 @@ public class SectionsController : Controller
     private async Task SetEnrollmentStatusAsync(int studentId, Section section, EnrollmentStatus status)
     {
         var enrollment = await _db.Enrollments.FirstOrDefaultAsync(e => e.StudentId == studentId
-            && e.SchoolYearId == section.SchoolYearId && e.GradeLevelId == section.GradeLevelId);
-        if (enrollment is not null) enrollment.Status = status;
+            && e.SchoolYearId == section.SchoolYearId);
+        if (enrollment is null)
+        {
+            enrollment = new Enrollment
+            {
+                StudentId = studentId,
+                SchoolYearId = section.SchoolYearId,
+                GradeLevelId = section.GradeLevelId,
+                Status = status
+            };
+            _db.Enrollments.Add(enrollment);
+        }
+        else
+        {
+            enrollment.GradeLevelId = section.GradeLevelId;
+            enrollment.Status = status;
+        }
 
         // Auto-billing: once a student is Scheduled, their grade's tuition invoice appears
         // automatically, sourced from the per-grade Fee row (Module 3). Runs only on the
         // assign path (Scheduled); guarded so a student is never billed twice for the same
         // school year even if re-assigned to another section.
-        if (status is EnrollmentStatus.Scheduled && enrollment is not null
+        if (status is EnrollmentStatus.Scheduled
             && !await _db.Invoices.AnyAsync(i => i.StudentId == studentId && i.SchoolYearId == section.SchoolYearId))
         {
             var tuitionFee = await _db.Fees
                 .Include(f => f.Lines)
                 .FirstOrDefaultAsync(f => f.IsActive && f.GradeLevelId == section.GradeLevelId);
+
+            List<InvoiceLine> lines;
             if (tuitionFee is not null && tuitionFee.TotalAmount > 0)
+            {
+                var activeLines = tuitionFee.Lines.Where(l => l.IsActive && l.Amount > 0).ToList();
+                lines = activeLines.Any()
+                    ? activeLines.Select(l => new InvoiceLine { Description = l.Description, Amount = l.Amount }).ToList()
+                    : new List<InvoiceLine> { new InvoiceLine { Description = tuitionFee.Name, Amount = tuitionFee.TotalAmount } };
+            }
+            else
+            {
+                var grade = await _db.GradeLevels.FindAsync(section.GradeLevelId);
+                var amount = grade?.Amount ?? 0m;
+                lines = new List<InvoiceLine> { new InvoiceLine { Description = $"{grade?.Name ?? "Grade"} Tuition", Amount = amount } };
+            }
+
+            if (lines.Sum(l => l.Amount) > 0)
             {
                 _db.Invoices.Add(new Invoice
                 {
@@ -187,12 +287,8 @@ public class SectionsController : Controller
                     SchoolYearId = section.SchoolYearId,
                     IssuedDate = DateTime.Today,
                     Number = await InvoiceNumbering.NextAsync(_db),
-                    Lines = new List<InvoiceLine>
-                    {
-                        new InvoiceLine { Description = tuitionFee.Name, Amount = tuitionFee.TotalAmount }
-                    }
+                    Lines = lines
                 });
-                await _db.SaveChangesAsync();
             }
         }
     }
@@ -231,8 +327,9 @@ public class SectionsController : Controller
                 && e.SchoolYearId == section.SchoolYearId
                 && e.GradeLevelId == section.GradeLevelId
                 && e.Status == EnrollmentStatus.Unscheduled))
-            .OrderBy(st => st.LastName)
-            .ThenBy(st => st.FirstName)
+            .Include(st => st.Person)
+            .OrderBy(st => st.Person!.LastName)
+            .ThenBy(st => st.Person!.FirstName)
             .ToListAsync();
         return View(section);
     }
@@ -272,23 +369,51 @@ public class SectionsController : Controller
     {
         await PopulateChoicesAsync(section.GradeLevelId, section.SchoolYearId);
         await PopulateSubjectsAsync(submittedSubjectIds ?? section.Subjects.Select(ss => ss.SubjectId));
-        ViewBag.Teachers = await _db.Faculty.Where(f => f.IsActive).OrderBy(f => f.LastName).ToListAsync();
+        ViewBag.Teachers = await _db.Faculty
+            .Where(f => f.IsActive)
+            .Include(f => f.Person)
+            .OrderBy(f => f.Person!.LastName)
+            .ThenBy(f => f.Person!.FirstName)
+            .ToListAsync();
         // ponytail: student grade = their section's grade level (no GradeLevelId on Student);
         // assignable = anyone not yet placed in a section.
         ViewBag.Pool = await _db.Students
             .Where(st => st.SectionId == null)
-            .OrderBy(st => st.LastName)
+            .Include(st => st.Person)
+            .OrderBy(st => st.Person!.LastName)
+            .ThenBy(st => st.Person!.FirstName)
             .ToListAsync();
     }
 
     private async Task PopulateChoicesAsync(int? gradeLevelId = null, int? schoolYearId = null)
     {
-        ViewBag.GradeLevels = new SelectList(
-            await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync(), "Id", "Name", gradeLevelId);
+        var gradeLevels = await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync();
+        var activeFees = await _db.Fees
+            .Include(f => f.Lines)
+            .Where(f => f.IsActive)
+            .ToListAsync();
+
+        var feeMap = gradeLevels.ToDictionary(
+            g => g.Id.ToString(),
+            g => {
+                var fee = activeFees.FirstOrDefault(f => f.GradeLevelId == g.Id);
+                var amount = fee != null && fee.TotalAmount > 0 ? fee.TotalAmount : g.Amount;
+                var name = fee != null ? fee.Name : $"{g.Name} Tuition";
+                return new { name, amount, formatted = amount.ToString("N2") };
+            }
+        );
+
+        ViewBag.GradeLevels = new SelectList(gradeLevels, "Id", "Name", gradeLevelId);
+        ViewBag.FeeMapJson = System.Text.Json.JsonSerializer.Serialize(feeMap);
         ViewBag.SchoolYears = new SelectList(
             await _db.SchoolYears.OrderByDescending(y => y.StartDate).ToListAsync(), "Id", "Name", schoolYearId);
         ViewBag.Advisers = new SelectList(
-            await _db.Faculty.Where(f => f.IsActive).OrderBy(f => f.LastName).ToListAsync(), "Id", "FullName");
+            await _db.Faculty
+                .Where(f => f.IsActive)
+                .Include(f => f.Person)
+                .OrderBy(f => f.Person!.LastName)
+                .ThenBy(f => f.Person!.FirstName)
+                .ToListAsync(), "Id", "FullName");
     }
 
     private async Task PopulateSubjectsAsync(IEnumerable<int>? selected = null)

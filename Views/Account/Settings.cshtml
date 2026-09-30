@@ -5,10 +5,7 @@
 }
 <h1 class="h3 mb-4">Settings</h1>
 
-@if (TempData["Info"] is string info)
-{
-    <div class="alert alert-success mb-3">@info</div>
-}
+<partial name="_TempAlert" />
 
 <form asp-action="ChangePassword" method="post">
     <div class="ec-card p-4" style="max-width: 560px;">

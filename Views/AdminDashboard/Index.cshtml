@@ -1,0 +1,22 @@
+@model EduCore.ViewModels.AdminDashboardVM
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h1 class="ec-page-title mb-4">Admin Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TotalStudents</div><div class="ec-metric-label">Students</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TotalFaculty</div><div class="ec-metric-label">Faculty</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TotalInquiries</div><div class="ec-metric-label">Inquiries</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.OpenInvoices</div><div class="ec-metric-label">Open Invoices</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Faculty" asp-action="Index">Manage Faculty</a></div>
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Students" asp-action="Index">Manage Students</a></div>
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Inquiries" asp-action="Index">Inquiries</a></div>
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Sections" asp-action="Index">Sections / Schedule</a></div>
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Fees" asp-action="Index">Fees</a></div>
+    <div class="col-md-6"><a class="ec-btn-secondary w-100" asp-controller="Reports" asp-action="Index">Reports</a></div>
+</div>

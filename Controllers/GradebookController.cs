@@ -24,7 +24,9 @@ public class GradebookController : Controller
     }
 
     private async Task<int?> MyIdAsync() =>
-        (await _db.Faculty.FirstOrDefaultAsync(f => f.ApplicationUserId == _users.GetUserId(User)))?.Id;
+        (await _db.Faculty
+            .Include(f => f.Person)
+            .FirstOrDefaultAsync(f => f.Person!.User!.Id == _users.GetUserId(User)))?.Id;
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -56,7 +58,9 @@ public class GradebookController : Controller
 
         var rows = await _db.Students
             .Where(st => st.SectionId == sectionSubject.SectionId)
-            .OrderBy(st => st.LastName)
+            .Include(st => st.Person)
+            .OrderBy(st => st.Person!.LastName)
+            .ThenBy(st => st.Person!.FirstName)
             .ToListAsync();
         var existing = await _db.Grades
             .Where(g => g.SectionSubjectId == sectionSubjectId).ToListAsync();
@@ -118,7 +122,11 @@ public class GradebookController : Controller
         var records = await _db.Attendance
             .Where(a => a.SectionId == sectionId && a.Date == day).ToListAsync();
         var students = await _db.Students
-            .Where(st => st.SectionId == sectionId).OrderBy(st => st.LastName).ToListAsync();
+            .Where(st => st.SectionId == sectionId)
+            .Include(st => st.Person)
+            .OrderBy(st => st.Person!.LastName)
+            .ThenBy(st => st.Person!.FirstName)
+            .ToListAsync();
 
         var model = students.Select(st =>
         {

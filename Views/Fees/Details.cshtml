@@ -1,5 +1,6 @@
 @model EduCore.Models.Entities.Fee
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Fee details";
 }
 
@@ -16,11 +17,11 @@
             <dd class="col-sm-9">
                 @if (Model.IsActive)
                 {
-                    <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                    <span class="badge text-bg-success">Active</span>
                 }
                 else
                 {
-                    <span class="badge bg-secondary bg-opacity-10 text-secondary">Inactive</span>
+                    <span class="badge text-bg-secondary">Inactive</span>
                 }
             </dd>
         </dl>
@@ -52,12 +53,12 @@
                     {
                         <tr>
                             <td>@l.Description</td>
-                            <td class="text-end">@l.Amount.ToString("N2")</td>
+                            <td class="text-end">@l.Amount.ToString("₱#,##0.00")</td>
                         </tr>
                     }
                     <tr class="table-active">
                         <th scope="row">Total</th>
-                        <td class="text-end fw-medium">@Model.TotalAmount.ToString("N2")</td>
+                        <td class="text-end fw-medium">@Model.TotalAmount.ToString("₱#,##0.00")</td>
                     </tr>
                 }
             </tbody>

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
@@ -22,10 +23,65 @@ public class FacultyController : Controller
         _users = users;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, bool? isActive, int page = 1, int pageSize = 10)
     {
-        var list = await _db.Faculty.OrderBy(f => f.LastName).ThenBy(f => f.FirstName).ToListAsync();
-        return View(list);
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query
+        var query = _db.Faculty
+            .Include(f => f.Person)
+            .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            // FullName is a computed property — not translatable by EF Core, so search
+            // the mapped columns (EmployeeNumber, Person.FirstName/LastName/Email) instead.
+            query = query.Where(f =>
+                f.EmployeeNumber.ToLower().Contains(term) ||
+                f.Person!.FirstName.ToLower().Contains(term) ||
+                f.Person!.LastName.ToLower().Contains(term) ||
+                f.Person!.Email.ToLower().Contains(term));
+        }
+
+        // Status filter (Active / Inactive)
+        if (isActive.HasValue)
+        {
+            query = query.Where(f => f.IsActive == isActive.Value);
+        }
+
+        // Order — roster reads best alphabetical by name
+        query = query
+            .OrderBy(f => f.Person!.LastName)
+            .ThenBy(f => f.Person!.FirstName);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var vm = new FacultyIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            IsActive = isActive
+        };
+        return View(vm);
     }
 
     [HttpGet]
@@ -33,34 +89,43 @@ public class FacultyController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("FirstName,LastName,Email,Contact,IsActive")] Faculty faculty)
+    public async Task<IActionResult> Create([Bind("EmployeeNumber,HireDate,IsActive")] Faculty faculty,
+        [Bind("FirstName,LastName,Email,Phone,Address")] Person person)
     {
         if (!ModelState.IsValid) return View(faculty);
 
-        if (!string.IsNullOrWhiteSpace(faculty.Email) && (await _users.FindByEmailAsync(faculty.Email)) is not null)
-            ModelState.AddModelError(nameof(Faculty.Email), "An account already uses this email.");
+        if (!string.IsNullOrWhiteSpace(person.Email))
+        {
+            var existingUser = await _users.FindByEmailAsync(person.Email);
+            if (existingUser is not null)
+                ModelState.AddModelError(nameof(person.Email), "An account already uses this email.");
+        }
 
         if (!ModelState.IsValid) return View(faculty);
 
+        _db.Persons.Add(person);
+        await _db.SaveChangesAsync();
+
+        faculty.PersonId = person.Id;
+
         // Create a Faculty login for them so the portal is reachable once Modules 5+ ship.
-        if (!string.IsNullOrWhiteSpace(faculty.Email))
+        if (!string.IsNullOrWhiteSpace(person.Email))
         {
             var acct = new ApplicationUser
             {
-                UserName = faculty.Email,
-                Email = faculty.Email,
-                DisplayName = faculty.FullName,
+                UserName = person.Email,
+                Email = person.Email,
+                PersonId = person.Id,
                 EmailConfirmed = true
             };
             var result = await _users.CreateAsync(acct, "Teacher123!");
             if (result.Succeeded)
             {
                 await _users.AddToRoleAsync(acct, AppRoles.Faculty);
-                faculty.ApplicationUserId = acct.Id;
             }
             else
             {
-                ModelState.AddModelError(nameof(Faculty.Email),
+                ModelState.AddModelError(nameof(person.Email),
                     string.Join(" ", result.Errors.Select(e => e.Description)));
                 return View(faculty);
             }
@@ -74,26 +139,39 @@ public class FacultyController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var faculty = await _db.Faculty.FindAsync(id);
+        var faculty = await _db.Faculty
+            .Include(f => f.Person)
+            .FirstOrDefaultAsync(f => f.Id == id);
         if (faculty is null) return NotFound();
         return View(faculty);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Faculty faculty)
+    public async Task<IActionResult> Edit(int id, Faculty faculty,
+        [Bind("FirstName,LastName,Email,Phone,Address")] Person person)
     {
         if (id != faculty.Id) return BadRequest();
         if (!ModelState.IsValid) return View(faculty);
 
-        var existing = await _db.Faculty.FindAsync(id);
+        var existing = await _db.Faculty
+            .Include(f => f.Person)
+            .FirstOrDefaultAsync(f => f.Id == id);
         if (existing is null) return NotFound();
 
-        existing.FirstName = faculty.FirstName;
-        existing.LastName = faculty.LastName;
-        existing.Email = faculty.Email;
-        existing.Contact = faculty.Contact;
+        existing.EmployeeNumber = faculty.EmployeeNumber;
+        existing.HireDate = faculty.HireDate;
         existing.IsActive = faculty.IsActive;
+
+        if (existing.Person is not null)
+        {
+            existing.Person.FirstName = person.FirstName;
+            existing.Person.LastName = person.LastName;
+            existing.Person.Email = person.Email;
+            existing.Person.Phone = person.Phone;
+            existing.Person.Address = person.Address;
+            existing.Person.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
@@ -102,7 +180,9 @@ public class FacultyController : Controller
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var faculty = await _db.Faculty.FindAsync(id);
+        var faculty = await _db.Faculty
+            .Include(f => f.Person)
+            .FirstOrDefaultAsync(f => f.Id == id);
         if (faculty is null) return NotFound();
         return View(faculty);
     }
@@ -111,9 +191,34 @@ public class FacultyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var faculty = await _db.Faculty.FindAsync(id);
+        var faculty = await _db.Faculty
+            .Include(f => f.Person)
+                .ThenInclude(p => p!.User)
+            .FirstOrDefaultAsync(f => f.Id == id);
+
         if (faculty is not null)
         {
+            // Clear references from Sections (adviser) and SectionSubjects (teacher)
+            var sections = await _db.Sections.Where(s => s.AdviserId == faculty.Id).ToListAsync();
+            foreach (var s in sections) s.AdviserId = null;
+
+            var sectionSubjects = await _db.SectionSubjects.Where(ss => ss.FacultyId == faculty.Id).ToListAsync();
+            foreach (var ss in sectionSubjects) ss.FacultyId = null;
+
+            await _db.SaveChangesAsync();
+
+            // Remove linked ApplicationUser (login account) if exists
+            if (faculty.Person?.User is not null)
+            {
+                var user = faculty.Person.User;
+                var result = await _users.DeleteAsync(user);
+                if (!result.Succeeded)
+                {
+                    ModelState.AddModelError("", "Failed to delete linked account: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
             _db.Faculty.Remove(faculty);
             await _db.SaveChangesAsync();
         }

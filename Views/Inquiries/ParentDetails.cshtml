@@ -21,7 +21,7 @@
         </div>
         <div class="col-md-6">
             <h6 class="text-uppercase text-body-secondary">Submitted</h6>
-            <p class="mb-1">@Model.DateCreated.ToString("MMM d, yyyy")</p>
+            <p class="mb-1">@Model.DateCreated.ToString("yyyy-MM-dd")</p>
             @if (!string.IsNullOrEmpty(Model.ContactPhone))
             {
                 <p class="mb-0 text-body-secondary small">Phone: @Model.ContactPhone</p>
@@ -69,7 +69,7 @@ else if (Model.Status == InquiryStatus.Approved)
             {
                 <div class="mb-3">
                     <small class="fw-semibold text-body-secondary">
-                        @(note.Staff?.DisplayName ?? "You") — @note.Timestamp.ToString("MMM d, h:mm tt")
+                        @(note.Staff?.Person?.FullName ?? note.Staff?.Email ?? "You") — @note.Timestamp.ToString("MMM d, yyyy HH:mm")
                     </small>
                     @if (note.Visibility == "Registrar")
                     {

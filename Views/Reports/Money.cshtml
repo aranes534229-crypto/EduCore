@@ -1,4 +1,4 @@
-@model List<Invoice>
+@model MoneyReportVM
 @using EduCore.Models.Entities
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -8,14 +8,26 @@
     <h1 class="h3 mb-0">Money report</h1>
 </div>
 
+<!-- Summary tiles -->
 <div class="row g-3 mb-3">
-    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Total billed", Value = ((decimal)ViewBag.TotalBilled).ToString("N2") })" />
-    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Collected", Value = ((decimal)ViewBag.TotalCollected).ToString("N2"), ValueClass = "text-success" })" />
-    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Outstanding", Value = ((decimal)ViewBag.TotalOutstanding).ToString("N2"), ValueClass = "text-danger" })" />
-    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Accounting & Expenses", Value = ((decimal)ViewBag.TotalExpenses).ToString("N2") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Total billed", Value = Model.TotalBilled.ToString("₱#,##0.00") })" />
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Collected", Value = Model.TotalCollected.ToString("₱#,##0.00"), ValueClass = "text-success" })" />
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Outstanding", Value = Model.TotalOutstanding.ToString("₱#,##0.00"), ValueClass = "text-danger" })" />
+    <partial name="_StatTile" model="@(new StatTileVM { ColClass = "col-md-3 col-6", Label = "Accounting & Expenses", Value = Model.TotalExpenses.ToString("₱#,##0.00") })" />
 </div>
 
-@if (Model.Count == 0)
+<!-- Toolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+    </div>
+</form>
+
+@if (Model.Items.Count == 0)
 {
     <p class="text-body-secondary">No invoices yet. Generate one from the Invoices screen to see billing numbers here.</p>
 }
@@ -26,16 +38,30 @@ else
             <tr><th>Invoice</th><th>Student</th><th>Total</th><th>Paid</th><th>Balance</th></tr>
         </thead>
         <tbody>
-            @foreach (var i in Model)
+            @foreach (var i in Model.Items)
             {
                 <tr>
                     <td>#@i.Id</td>
                     <td>@i.Student.FullName</td>
-                    <td>@i.Total.ToString("N2")</td>
-                    <td>@i.Paid.ToString("N2")</td>
-                    <td class="@((i.Balance > 0) ? "text-danger fw-semibold" : "")">@i.Balance.ToString("N2")</td>
+                    <td>@i.Total.ToString("₱#,##0.00")</td>
+                    <td>@i.Paid.ToString("₱#,##0.00")</td>
+                    <td class="@((i.Balance > 0) ? "text-danger fw-semibold" : "")">@i.Balance.ToString("₱#,##0.00")</td>
                 </tr>
             }
         </tbody>
     </table>
+
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Money",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Money report pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search
+        }
+    }' />
 }

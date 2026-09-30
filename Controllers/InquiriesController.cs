@@ -1,6 +1,7 @@
 using EduCore.Data;
 using EduCore.Models.Constants;
 using EduCore.Models.Entities;
+using EduCore.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Controllers;
 
-/// <summary>Module 8 — Inquiry &amp; Admission. The Registrar logs lead inquiries, assigns a staff
+/// <summary>Module 8 — Inquiry & Admission. The Registrar logs lead inquiries, assigns a staff
 /// owner, and walks them New → Approved/Rejected. "Approved" precedes the
 /// Student/Enrollment screens (the Registrar creates those from the approved lead).
 /// Parents/Students can also submit inquiries from the portal; those are pre-linked to the
@@ -30,69 +31,136 @@ public class InquiriesController : Controller
         _env = env;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, InquiryStatus? status, int? gradeId, int page = 1, int pageSize = 10)
     {
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
+        // Base query
+        var query = _db.Inquiries
+            .Include(i => i.GradeLevel)
+            .Include(i => i.CreatedBy).ThenInclude(u => u!.Person)
+            .Include(i => i.Thread)
+            .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(i =>
+                i.StudentName.ToLower().Contains(term) ||
+                i.InquiryNumber.ToLower().Contains(term) ||
+                i.ContactEmail.ToLower().Contains(term));
+        }
+
+        // Status filter
+        if (status.HasValue)
+        {
+            query = query.Where(i => i.Status == status.Value);
+        }
+
+        // Grade level filter
+        if (gradeId.HasValue)
+        {
+            query = query.Where(i => i.GradeLevelId == gradeId.Value);
+        }
+
+        // Order
+        query = query.OrderByDescending(i => i.Id);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Assignee names for all inquiries (to keep existing behavior)
+        var allAssignedIds = await _db.Inquiries
+            .Where(i => i.AssignedToId != null)
+            .Select(i => i.AssignedToId!)
+            .Distinct()
+            .ToListAsync();
+        ViewBag.Names = await NamesOfAsync(allAssignedIds);
+
+        // Grade levels select list
+        var gradeLevels = await _db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync();
+        var gradeSelect = new SelectList(gradeLevels, "Id", "Name", gradeId);
+
+        var vm = new InquiriesIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Search = q,
+            Status = status,
+            GradeLevelId = gradeId,
+            GradeLevels = gradeSelect
+        };
+
+        return View(vm);
+    }
+
+    /// <summary>Parent/Student: list of inquiries submitted by the logged-in user.</summary>
+    [Authorize(Roles = AppRoles.Parent)]
+    public async Task<IActionResult> MyInquiries()
+    {
+        var userId = _users.GetUserId(User);
         var list = await _db.Inquiries
             .Include(i => i.GradeLevel)
-            .Include(i => i.CreatedBy)
+            .Include(i => i.Assignee).ThenInclude(u => u!.Person)
             .Include(i => i.Thread)
-            .OrderByDescending(i => i.Id)
+                .ThenInclude(n => n.Staff).ThenInclude(s => s!.Person)
+            .Where(i => i.CreatedByUserId == userId)
+            .OrderByDescending(i => i.DateCreated)
             .ToListAsync();
-        ViewBag.Names = await NamesOfAsync(list.Where(i => i.AssignedToId != null).Select(i => i.AssignedToId!).Distinct());
         return View(list);
     }
 
-        /// <summary>Parent/Student: list of inquiries submitted by the logged-in user.</summary>
-        [Authorize(Roles = AppRoles.Parent)]
-        public async Task<IActionResult> MyInquiries()
-        {
-            var userId = _users.GetUserId(User);
-            var list = await _db.Inquiries
-                .Include(i => i.GradeLevel)
-                .Include(i => i.Assignee)
-                .Include(i => i.Thread)
-                    .ThenInclude(n => n.Staff)
-                .Where(i => i.CreatedByUserId == userId)
-                .OrderByDescending(i => i.DateCreated)
-                .ToListAsync();
-            return View(list);
-        }
+    /// <summary>Parent/Student: view an inquiry they own, with the conversation thread.</summary>
+    [Authorize(Roles = AppRoles.Parent)]
+    public async Task<IActionResult> ParentDetails(int id)
+    {
+        var userId = _users.GetUserId(User);
+        var inquiry = await _db.Inquiries
+            .Include(i => i.GradeLevel)
+            .Include(i => i.Assignee).ThenInclude(u => u!.Person)
+            .Include(i => i.Thread)
+                .ThenInclude(n => n.Staff).ThenInclude(s => s!.Person)
+            .FirstOrDefaultAsync(i => i.Id == id && i.CreatedByUserId == userId);
 
-        /// <summary>Parent/Student: view an inquiry they own, with the conversation thread.</summary>
-        [Authorize(Roles = AppRoles.Parent)]
-        public async Task<IActionResult> ParentDetails(int id)
-        {
-            var userId = _users.GetUserId(User);
-            var inquiry = await _db.Inquiries
-                .Include(i => i.GradeLevel)
-                .Include(i => i.Assignee)
-                .Include(i => i.Thread)
-                    .ThenInclude(n => n.Staff)
-                .FirstOrDefaultAsync(i => i.Id == id && i.CreatedByUserId == userId);
-
-            if (inquiry is null) return NotFound();
-            return View(inquiry);
-        }
+        if (inquiry is null) return NotFound();
+        return View(inquiry);
+    }
 
     /// <summary>Registrar/Admin: view one inquiry with the full conversation thread.</summary>
-        [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
-        public async Task<IActionResult> Details(int id)
-        {
-            var inquiry = await _db.Inquiries
-                .Include(i => i.GradeLevel)
-                .Include(i => i.Assignee)
-                .Include(i => i.Documents)
-                .Include(i => i.ConvertedStudent)
-                .Include(i => i.Thread)
-                    .ThenInclude(n => n.Staff)
-                .FirstOrDefaultAsync(i => i.Id == id);
-            if (inquiry is null) return NotFound();
+    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Registrar}")]
+    public async Task<IActionResult> Details(int id)
+    {
+        var inquiry = await _db.Inquiries
+            .Include(i => i.GradeLevel)
+            .Include(i => i.Assignee).ThenInclude(u => u!.Person)
+            .Include(i => i.Documents)
+            .Include(i => i.ConvertedStudent).ThenInclude(s => s!.Person)
+            .Include(i => i.Thread)
+                .ThenInclude(n => n.Staff).ThenInclude(s => s!.Person)
+            .FirstOrDefaultAsync(i => i.Id == id);
+        if (inquiry is null) return NotFound();
 
-            ViewBag.Names = inquiry.AssignedToId != null
-                ? await NamesOfAsync(new[] { inquiry.AssignedToId! })
-                : new Dictionary<string, string>();
-            return View(inquiry);
-        }
+        ViewBag.Names = inquiry.AssignedToId != null
+            ? await NamesOfAsync(new[] { inquiry.AssignedToId! })
+            : new Dictionary<string, string>();
+        return View(inquiry);
+    }
 
     /// <summary>Parent/Student: submit a new inquiry, auto-linked to their account. The single form
     /// captures the student info, the enrollment application fields, and document uploads.</summary>
@@ -192,19 +260,25 @@ public class InquiriesController : Controller
         }
 
         var (first, last) = SplitName(inquiry.StudentName);
+        var person = new Person
+        {
+            FirstName = first,
+            LastName = last,
+            Email = inquiry.ContactEmail,
+            Phone = inquiry.ContactPhone,
+            Address = inquiry.Address
+        };
+        _db.Persons.Add(person);
+        await _db.SaveChangesAsync();
+
         var student = new Student
         {
             StudentNumber = await NextStudentNumberAsync(),
-            FirstName = first,
-            LastName = last,
             BirthDate = inquiry.BirthDate,
-            Address = inquiry.Address,
             GuardianName = inquiry.GuardianName,
             GuardianContact = inquiry.ContactPhone,
             GuardianEmail = inquiry.ContactEmail,
-            // An inquiry submitted from the Parent portal carries the submitted account; the
-            // converted Student inherits it so the parent sees their application in the portal.
-            ApplicationUserId = inquiry.CreatedByUserId
+            PersonId = person.Id
         };
         _db.Students.Add(student);
         await _db.SaveChangesAsync();
@@ -315,7 +389,10 @@ public class InquiriesController : Controller
     }
 
     private async Task<Dictionary<string, string>> NamesOfAsync(IEnumerable<string> ids)
-        => (await _users.Users.Where(u => ids.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id, u => u.DisplayName);
+        => (await _users.Users
+            .Include(u => u!.Person)
+            .Where(u => ids.Contains(u.Id))
+            .ToListAsync()).ToDictionary(u => u.Id, u => u!.Person?.FullName ?? u.Email ?? "");
 
     private async Task PopulateChoicesAsync(int? gradeLevelId = null)
     {

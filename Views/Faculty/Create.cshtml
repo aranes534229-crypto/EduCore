@@ -9,24 +9,37 @@
         <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
         <div class="row g-3 mb-3">
             <div class="col-md-6">
-                <label asp-for="FirstName" class="form-label"></label>
-                <input asp-for="FirstName" class="form-control" />
-                <span asp-validation-for="FirstName" class="text-danger"></span>
+                <label asp-for="Person.FirstName" class="form-label">First Name</label>
+                <input asp-for="Person.FirstName" class="form-control" />
+                <span asp-validation-for="Person.FirstName" class="text-danger"></span>
             </div>
             <div class="col-md-6">
-                <label asp-for="LastName" class="form-label"></label>
-                <input asp-for="LastName" class="form-control" />
-                <span asp-validation-for="LastName" class="text-danger"></span>
+                <label asp-for="Person.LastName" class="form-label">Last Name</label>
+                <input asp-for="Person.LastName" class="form-control" />
+                <span asp-validation-for="Person.LastName" class="text-danger"></span>
             </div>
             <div class="col-md-6">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" type="email" />
+                <label asp-for="Person.Email" class="form-label">Email</label>
+                <input asp-for="Person.Email" class="form-control" type="email" />
                 <div class="form-text">A Faculty login (password reset via the account) is created automatically.</div>
-                <span asp-validation-for="Email" class="text-danger"></span>
+                <span asp-validation-for="Person.Email" class="text-danger"></span>
             </div>
             <div class="col-md-6">
-                <label asp-for="Contact" class="form-label"></label>
-                <input asp-for="Contact" class="form-control" />
+                <label asp-for="Person.Phone" class="form-label">Phone</label>
+                <input asp-for="Person.Phone" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Person.Address" class="form-label">Address</label>
+                <input asp-for="Person.Address" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="EmployeeNumber" class="form-label">Employee Number</label>
+                <input asp-for="EmployeeNumber" class="form-control" />
+                <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="HireDate" class="form-label">Hire Date</label>
+                <input asp-for="HireDate" class="form-control" type="date" />
             </div>
         </div>
     </div>

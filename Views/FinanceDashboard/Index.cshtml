@@ -1,0 +1,106 @@
+@model EduCore.ViewModels.FinanceDashboardVM
+@using EduCore.Models.Entities
+@{
+    ViewData["Title"] = "Finance Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h1 class="ec-page-title mb-4">Finance Dashboard <small class="ec-muted">(@Model.ActiveSchoolYearName)</small></h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-primary">@Model.TotalBilled.ToString("₱#,##0.00")</div><div class="ec-metric-label">Total Billed</div></div></div>
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-success">@Model.TotalCollected.ToString("₱#,##0.00")</div><div class="ec-metric-label">Total Collected</div></div></div>
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-danger">@Model.OutstandingReceivables.ToString("₱#,##0.00")</div><div class="ec-metric-label">Outstanding</div></div></div>
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.OpenInvoicesCount</div><div class="ec-metric-label">Open Invoices</div></div></div>
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-warning">@Model.OverdueInvoicesCount</div><div class="ec-metric-label">Overdue (>30d)</div></div></div>
+    <div class="col-md-2"><div class="ec-card p-3 text-center"><div class="ec-metric-value @(Model.NetPosition >= 0 ? "text-success" : "text-danger")">@Model.NetPosition.ToString("₱#,##0.00")</div><div class="ec-metric-label">Net Position</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-info">@Model.TuitionCollected.ToString("₱#,##0.00")</div><div class="ec-metric-label">Tuition Collected</div></div></div>
+    <div class="col-md-6"><div class="ec-card p-3 text-center"><div class="ec-metric-value text-secondary">@Model.OtherFeesCollected.ToString("₱#,##0.00")</div><div class="ec-metric-label">Other Fees Collected</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <h5 class="ec-section-title mb-3">Recent Payments</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Date</th><th>Student</th><th>Invoice</th><th class="text-end">Amount</th><th>Method</th></tr></thead>
+                <tbody>
+                @foreach (var p in Model.RecentPayments)
+                {
+                    <tr>
+                        <td>@p.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@p.Invoice?.Student?.Person?.FirstName @p.Invoice?.Student?.Person?.LastName</td>
+                        <td>@p.Invoice?.Number</td>
+                        <td class="text-end fw-semibold">@p.Amount.ToString("₱#,##0.00")</td>
+                        <td>@p.Method</td>
+                    </tr>
+                }
+                @if (!Model.RecentPayments.Any())
+                {
+                    <tr><td colspan="5" class="text-center ec-muted">No payments</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <h5 class="ec-section-title mb-3">Overdue Invoices</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Invoice</th><th>Student</th><th class="text-end">Balance</th><th>Issued</th></tr></thead>
+                <tbody>
+                @foreach (var inv in Model.OverdueInvoices)
+                {
+                    <tr>
+                        <td>@inv.Number</td>
+                        <td>@inv.Student?.Person?.FirstName @inv.Student?.Person?.LastName</td>
+                        <td class="text-end text-danger fw-semibold">@inv.Balance.ToString("₱#,##0.00")</td>
+                        <td>@inv.IssuedDate.ToString("yyyy-MM-dd")</td>
+                    </tr>
+                }
+                @if (!Model.OverdueInvoices.Any())
+                {
+                    <tr><td colspan="4" class="text-center ec-muted">No overdue invoices</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <h5 class="ec-section-title mb-3">Recent Expenses</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>
+                @foreach (var e in Model.RecentExpenses)
+                {
+                    <tr>
+                        <td>@e.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@e.Category</td>
+                        <td>@e.Description</td>
+                        <td class="text-end fw-semibold text-danger">@e.Amount.ToString("₱#,##0.00")</td>
+                    </tr>
+                }
+                @if (!Model.RecentExpenses.Any())
+                {
+                    <tr><td colspan="4" class="text-center ec-muted">No expenses</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Invoices" asp-action="Index">Invoices</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Expenses" asp-action="Index">Expenses</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Fees" asp-action="Index">Fees</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Reports" asp-action="Index">Reports</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="ParentBilling" asp-action="Index">Parent Billing</a></div>
+</div>

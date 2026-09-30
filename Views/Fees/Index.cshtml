@@ -1,69 +1,130 @@
-@model IEnumerable<EduCore.Models.Entities.Fee>
+@using EduCore.Models.Entities
+@model FeesIndexVM
 @{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Fees";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Fees</h2>
-    <a asp-action="Create" class="btn btn-primary">Add fee</a>
+<!-- Title row -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Fees</h1>
+    <a asp-action="Create" class="btn btn-primary">Add Fee</a>
 </div>
 
-@if (!Model.Any())
+<!-- Toolbar row -->
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <!-- Search input with icon -->
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" class="form-control toolbar-input" placeholder="Search..." value="@Model.Search" />
+        </div>
+
+        <!-- Grade level filter -->
+        <select name="gradeId" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All grades</option>
+            @foreach (var g in Model.GradeLevels)
+            {
+                <option value="@g.Value" selected="@(Model.GradeLevelId?.ToString() == g.Value)">@g.Text</option>
+            }
+        </select>
+
+        <!-- Status filter -->
+        <select name="isActive" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All statuses</option>
+            <option value="true" selected="@(Model.IsActive == true)">Active</option>
+            <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+        </select>
+    </div>
+</form>
+
+<table class="ec-table">
+    <thead>
+        <tr>
+            <th>Fee</th>
+            <th class="text-end">Amount</th>
+            <th>Grade</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model.Items)
+    {
+        <tr>
+            <td class="fw-semibold">@f.Name</td>
+            <td class="text-end">@f.TotalAmount.ToString("₱#,##0.00")</td>
+            <td>
+                @if (f.GradeLevel != null)
+                {
+                    @f.GradeLevel.Name
+                }
+                else
+                {
+                    <span class="text-body-secondary">Shared</span>
+                }
+            </td>
+            <td>
+                @if (f.IsActive)
+                {
+                    <span class="badge text-bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">Inactive</span>
+                }
+            </td>
+            <td class="text-end text-nowrap">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" asp-action="Details" asp-route-id="@f.Id">
+                                <i class="bi bi-eye me-2"></i> View Details
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" asp-action="Edit" asp-route-id="@f.Id">
+                                <i class="bi bi-pencil me-2"></i> Edit
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-action="Delete" asp-route-id="@f.Id" method="post" class="d-inline" data-confirm="Delete this fee?">
+                                <button type="submit" class="dropdown-item text-danger" style="background:none; border:none; padding:0.25rem 1rem; text-align:left; width:100%;">
+                                    <i class="bi bi-trash me-2"></i> Delete
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@if (!Model.Items.Any())
 {
-    <div class="alert alert-body-secondary mb-0">No fees yet. Add one to get started.</div>
+    <p class="text-body-secondary text-center py-3">No fees yet. Add one to get started.</p>
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col">Fee</th>
-                    <th scope="col" class="text-end">Amount</th>
-                    <th scope="col">Grade</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" class="text-center">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="table-group-divider">
-                @foreach (var f in Model)
-                {
-                    <tr>
-                        <td class="fw-medium">
-                            <a asp-action="Details" asp-route-id="@f.Id" class="text-decoration-none">@f.Name</a>
-                        </td>
-                        <td class="text-end">@f.TotalAmount.ToString("N2")</td>
-                        <td>@(f.GradeLevel?.Name ?? "<span class='text-muted'>Shared</span>")</td>
-                        <td>
-                            @if (f.IsActive)
-                            {
-                                <span class="badge bg-success bg-opacity-10 text-success">Active</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Inactive</span>
-                            }
-                        </td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-1">
-                                <a asp-action="Details" asp-route-id="@f.Id" class="btn btn-sm btn-outline-secondary" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a asp-action="Edit" asp-route-id="@f.Id" class="btn btn-sm btn-outline-primary" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form asp-action="Delete" asp-route-id="@f.Id" method="post"
-                                      onsubmit="return confirm('Delete this fee?');"
-                                      data-bs-toggle="tooltip" title="Delete">
-                                    <button class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <!-- Pagination footer -->
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Index",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "Fees pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["q"] = Model.Search,
+            ["gradeId"] = Model.GradeLevelId,
+            ["isActive"] = Model.IsActive
+        }
+    }' />
 }

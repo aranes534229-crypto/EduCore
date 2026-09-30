@@ -32,7 +32,7 @@
             {
                 foreach (var l in lines)
                 {
-                    <tr><td>@l.Description</td><td class="text-end">@l.Amount.ToString("N2")</td></tr>
+                    <tr><td>@l.Description</td><td class="text-end">@l.Amount.ToString("₱#,##0.00")</td></tr>
                 }
             }
             else
@@ -53,9 +53,9 @@
 
     <div class="text-end mt-3">
         <table class="table table-sm table-borderless mb-0">
-            <tr><td class="text-end fw-semibold">Invoice total:</td><td class="text-end" style="width:120px">@(Model.Invoice?.Total.ToString("N2") ?? "—")</td></tr>
-            <tr><td class="text-end fw-semibold">Amount paid:</td><td class="text-end text-success fw-bold">@Model.Amount.ToString("N2")</td></tr>
-            <tr><td class="text-end fw-semibold border-top pt-1">Balance:</td><td class="text-end fw-bold border-top pt-1">@(Model.Invoice?.Balance.ToString("N2") ?? "—")</td></tr>
+            <tr><td class="text-end fw-semibold">Invoice total:</td><td class="text-end" style="width:120px">@(Model.Invoice?.Total.ToString("₱#,##0.00") ?? "—")</td></tr>
+            <tr><td class="text-end fw-semibold">Amount paid:</td><td class="text-end text-success fw-bold">@Model.Amount.ToString("₱#,##0.00")</td></tr>
+            <tr><td class="text-end fw-semibold border-top pt-1">Balance:</td><td class="text-end fw-bold border-top pt-1">@(Model.Invoice?.Balance.ToString("₱#,##0.00") ?? "—")</td></tr>
         </table>
     </div>
 

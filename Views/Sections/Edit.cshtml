@@ -25,6 +25,7 @@
             <label asp-for="GradeLevelId" class="form-label">Grade Level</label>
             <select asp-for="GradeLevelId" asp-items="ViewBag.GradeLevels" class="form-select"></select>
             <span asp-validation-for="GradeLevelId" class="text-danger"></span>
+            <div id="feeInfo" class="mt-1"></div>
         </div>
         <div class="col-md-6">
             <label asp-for="SchoolYearId" class="form-label">School Year</label>
@@ -117,4 +118,19 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        var gradeFees = @Html.Raw(ViewBag.FeeMapJson ?? "{}");
+        function updateFeeDisplay() {
+            var gradeId = $('#GradeLevelId').val();
+            var info = gradeFees[gradeId];
+            if (info) {
+                $('#feeInfo').html('<span class="badge text-bg-primary">' +
+                    info.name + ': ₱' + info.formatted + '</span>');
+            } else {
+                $('#feeInfo').empty();
+            }
+        }
+        $('#GradeLevelId').on('change', updateFeeDisplay);
+        updateFeeDisplay();
+    </script>
 }
