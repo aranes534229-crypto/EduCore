@@ -60,9 +60,12 @@ public class SectionsController : Controller
 
         // Submitted filter — IsSubmitted is a computed property, so filter the
         // mapped SubmittedToFinanceAt column instead (EF can't translate the former).
-        query = isSubmitted.Value
-            ? query.Where(s => s.SubmittedToFinanceAt != null)
-            : query.Where(s => s.SubmittedToFinanceAt == null);
+        if (isSubmitted.HasValue)
+        {
+            query = isSubmitted.Value
+                ? query.Where(s => s.SubmittedToFinanceAt != null)
+                : query.Where(s => s.SubmittedToFinanceAt == null);
+        }
 
         // Order
         query = query
