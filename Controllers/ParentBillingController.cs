@@ -14,7 +14,7 @@ namespace EduCore.Controllers;
 /// invoice management stays in InvoicesController; this is only the portal view/pay surface.
 /// Scoping uses Person.UserId (a Parent login → their child via Person), the same mechanism
 /// MessagesController.MyStudentsAsync relies on.</summary>
-[Authorize(Roles = AppRoles.Parent)]
+[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Parent}")]
 public class ParentBillingController : Controller
 {
     private readonly AppDbContext _db;
