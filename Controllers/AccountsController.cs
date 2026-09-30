@@ -108,7 +108,9 @@ public class AccountsController : Controller
             Role = role,
             Locked = locked,
             CurrentUserId = _users.GetUserId(User) ?? "",
-            RoleValues = new SelectList(AppRoles.All)
+            // Plain strings have no DataValueField — build Value/Text pairs so the
+            // role options don't all render value="" (which filters as "All roles").
+            RoleValues = new SelectList(AppRoles.All.Select(r => new { Value = r, Text = r }), "Value", "Text")
         };
         return View(vm);
     }

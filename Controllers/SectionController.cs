@@ -58,11 +58,11 @@ public class SectionsController : Controller
             query = query.Where(s => s.SchoolYearId == schoolYearId.Value);
         }
 
-        // Submitted filter
-        if (isSubmitted.HasValue)
-        {
-            query = query.Where(s => s.IsSubmitted == isSubmitted.Value);
-        }
+        // Submitted filter — IsSubmitted is a computed property, so filter the
+        // mapped SubmittedToFinanceAt column instead (EF can't translate the former).
+        query = isSubmitted.Value
+            ? query.Where(s => s.SubmittedToFinanceAt != null)
+            : query.Where(s => s.SubmittedToFinanceAt == null);
 
         // Order
         query = query
