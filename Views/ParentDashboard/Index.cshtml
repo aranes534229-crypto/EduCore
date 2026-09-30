@@ -1,0 +1,141 @@
+@model EduCore.ViewModels.ParentDashboardVM
+@using EduCore.Models.Entities
+@{
+    ViewData["Title"] = "Parent Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    string Preview(string? text, int max = 70)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "—";
+        return text.Length <= max ? text : text.Substring(0, max).TrimEnd() + "…";
+    }
+}
+<h1 class="ec-page-title mb-4">Parent Dashboard</h1>
+
+@if (!Model.Children.Any())
+{
+    <div class="alert alert-info">
+        No children linked to your account yet. <a asp-controller="Inquiries" asp-action="Submit">Submit an inquiry</a> to start the admission process.
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Inquiries" asp-action="Submit">Submit Inquiry</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Inquiries" asp-action="MyInquiries">My Inquiries</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Messages" asp-action="Index">Messages</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Announcements" asp-action="Index">Announcements</a></div>
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @foreach (var child in Model.Children)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="ec-card p-3 h-100">
+                    <h6 class="fw-semibold">@child.FullName <small class="ec-muted">(@child.StudentNumber)</small></h6>
+                    <div class="small ec-muted">@child.GradeLevel · @child.SectionName</div>
+                    <div class="mt-2">
+                        <span class="badge @(child.EnrollmentStatus == EnrollmentStatus.Scheduled ? "text-bg-success" : "text-bg-warning")">
+                            @(child.EnrollmentStatus?.ToString() ?? "Not Enrolled")
+                        </span>
+                    </div>
+                    <div class="mt-2 fw-semibold @(child.OutstandingBalance > 0 ? "text-danger" : "text-success")">
+                        Balance: ₱@child.OutstandingBalance.ToString("N2")
+                    </div>
+                    @if (child.UnreadMessages > 0)
+                    {
+                        <div class="small"><span class="badge text-bg-primary">@child.UnreadMessages unread messages</span></div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value @(Model.TotalOutstandingBalance > 0 ? "text-danger" : "")">₱@Model.TotalOutstandingBalance.ToString("N2")</div><div class="ec-metric-label">Total Balance Due</div></div></div>
+        <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.UnreadMessages</div><div class="ec-metric-label">Unread Messages</div></div></div>
+        <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.PendingInquiries</div><div class="ec-metric-label">Pending Inquiries</div></div></div>
+        <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.ActiveEnrollments</div><div class="ec-metric-label">Active Enrollments</div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="ParentBilling" asp-action="Index">Tuition & Billing</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Inquiries" asp-action="MyInquiries">My Inquiries</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Messages" asp-action="Index">Messages</a></div>
+        <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Announcements" asp-action="Index">Announcements</a></div>
+    </div>
+}
+
+<!-- Recent activity -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="ec-card p-3 h-100">
+            <h6 class="text-uppercase fw-semibold mb-3">Recent Messages</h6>
+            @if (Model.RecentMessages.Any())
+            {
+                @foreach (var m in Model.RecentMessages)
+                {
+                    <a class="d-flex justify-content-between align-items-start gap-2 py-2 text-decoration-none border-bottom border-light"
+                       asp-controller="Messages" asp-action="Thread" asp-route-studentId="@m.StudentId">
+                        <span class="small text-dark text-break">
+                            @if (!m.Seen)
+                            {
+                                <span class="badge text-bg-primary me-1">New</span>
+                            }
+                            @Preview(m.Body)
+                        </span>
+                        <span class="small ec-muted text-nowrap">@m.SentAt.ToString("MMM d")</span>
+                    </a>
+                }
+            }
+            else
+            {
+                <p class="small ec-muted mb-0">No recent messages.</p>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="ec-card p-3 h-100">
+            <h6 class="text-uppercase fw-semibold mb-3">My Inquiries</h6>
+            @if (Model.RecentInquiries.Any())
+            {
+                @foreach (var i in Model.RecentInquiries)
+                {
+                    <a class="d-flex justify-content-between align-items-center gap-2 py-2 text-decoration-none border-bottom border-light"
+                       asp-controller="Inquiries" asp-action="ParentDetails" asp-route-id="@i.Id">
+                        <span class="small text-dark fw-semibold">#@i.InquiryNumber · @i.StudentName</span>
+                        <span class="badge @i.StatusClass">@i.Status</span>
+                    </a>
+                }
+            }
+            else
+            {
+                <p class="small ec-muted mb-0">No inquiries submitted yet.</p>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="ec-card p-3 h-100">
+            <h6 class="text-uppercase fw-semibold mb-3">Announcements</h6>
+            @if (Model.RecentAnnouncements.Any())
+            {
+                @foreach (var a in Model.RecentAnnouncements)
+                {
+                    <div class="py-2 border-bottom border-light">
+                        <div class="d-flex justify-content-between align-items-center gap-2">
+                            <span class="small text-dark fw-semibold">@a.Title</span>
+                            <span class="small ec-muted text-nowrap">@a.PostedAt.ToString("MMM d")</span>
+                        </div>
+                        <div class="small ec-muted text-break">@Preview(a.Body, 60)</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="small ec-muted mb-0">No announcements yet.</p>
+            }
+        </div>
+    </div>
+</div>

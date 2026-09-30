@@ -1,0 +1,60 @@
+@model EduCore.ViewModels.FacultyDashboardVM
+@{
+    ViewData["Title"] = "Faculty Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h1 class="h3 mb-4">Faculty Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.AdvisedSectionsCount</div><div class="ec-metric-label">Advised Sections</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TeachingSubjectsCount</div><div class="ec-metric-label">Teaching Subjects</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.TotalStudents</div><div class="ec-metric-label">Students in My Care</div></div></div>
+    <div class="col-md-3"><div class="ec-card p-3 text-center"><div class="ec-metric-value">@Model.UnreadMessages</div><div class="ec-metric-label">Unread Messages</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Gradebook" asp-action="Index">Gradebook</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Messages" asp-action="Index">Messages</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-action="Students">My Students</a></div>
+    <div class="col-md-3"><a class="ec-btn-secondary w-100" asp-controller="Reports" asp-action="ClassResults">Class Results</a></div>
+</div>
+
+<div class="ec-card mb-4">
+    <div class="card-header">Upcoming Attendance (next 7 days)</div>
+    <div class="table-responsive p-3">
+        <table class="ec-table ec-table-sm align-middle mb-0">
+            <thead class="table-light"><tr><th>Section</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.UpcomingAttendance)
+                {
+                    <tr>
+                        <td>@a.SectionName</td>
+                        <td>@a.Date.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@a.SectionId" asp-route-date="@a.Date.ToString("yyyy-MM-dd")">Open</a></td>
+                    </tr>
+                }
+                @if (!Model.UpcomingAttendance.Any())
+                {
+                    <tr><td colspan="3" class="text-center text-body-secondary">No attendance sessions scheduled.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="ec-card">
+    <div class="card-header">Recent Announcements</div>
+    <div class="list-group list-group-flush p-3">
+        @foreach (var an in Model.RecentAnnouncements)
+        {
+            <div class="list-group-item">
+                <div class="fw-medium">@an.Title</div>
+                <div class="small text-body-secondary">@an.PostedAt.ToString("yyyy-MM-dd")</div>
+            </div>
+        }
+        @if (!Model.RecentAnnouncements.Any())
+        {
+            <p class="text-body-secondary mb-0">No announcements.</p>
+        }
+    </div>
+</div>

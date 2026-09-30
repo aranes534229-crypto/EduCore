@@ -1,0 +1,117 @@
+@model EduCore.ViewModels.FacultyStudentVM
+@{
+    ViewData["Title"] = "Student Detail";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">@Model.FullName</h1>
+    <a asp-action="Students" class="btn btn-outline-secondary btn-sm">Back to List</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="ec-card p-4">
+            <h5 class="mb-3">Profile</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-5">Student #</dt><dd class="col-sm-7">@Model.StudentNumber</dd>
+                <dt class="col-sm-5">Section</dt><dd class="col-sm-7">@Model.SectionName</dd>
+                <dt class="col-sm-5">Grade</dt><dd class="col-sm-7">@Model.GradeLevelName</dd>
+                <dt class="col-sm-5">Birth Date</dt><dd class="col-sm-7">@(Model.BirthDate?.ToString("MMM dd, yyyy") ?? "—")</dd>
+                <dt class="col-sm-5">Email</dt><dd class="col-sm-7">@Model.Email</dd>
+            </dl>
+        </div>
+
+        <div class="ec-card p-4 mt-3">
+            <h5 class="mb-3">Guardian</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-5">Name</dt><dd class="col-sm-7">@Model.GuardianName</dd>
+                <dt class="col-sm-5">Phone</dt><dd class="col-sm-7">@Model.GuardianContact</dd>
+                <dt class="col-sm-5">Email</dt><dd class="col-sm-7">@Model.GuardianEmail</dd>
+            </dl>
+            <div class="mt-2">
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Messages" asp-action="Create" asp-route-studentId="@Model.Id">Message Guardian</a>
+            </div>
+        </div>
+
+        @if (Model.Documents.Any())
+        {
+            <div class="ec-card p-4 mt-3">
+                <h5 class="mb-3">Documents</h5>
+                <ul class="list-group list-group-flush">
+                    @foreach (var d in Model.Documents)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@d.FileName</span>
+                            <a class="btn btn-sm btn-outline-secondary" href="@Url.Content(d.Path)" target="_blank">Open</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-8">
+        <div class="ec-card p-4 mb-3">
+            <h5 class="mb-3">Grades (Current Section)</h5>
+            @if (Model.Grades.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subject</th>
+                                <th class="text-center" style="width:100px;">Score</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var g in Model.Grades)
+                            {
+                                <tr>
+                                    <td>@g.SubjectName</td>
+                                    <td class="text-center fw-medium">@(g.Score.HasValue ? g.Score.Value.ToString("0.##") : "—")</td>
+                                    <td>@g.Remarks</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-body-secondary mb-0">No grades recorded yet.</p>
+            }
+        </div>
+
+        <div class="ec-card p-4">
+            <h5 class="mb-3">Attendance (This Month)</h5>
+            <div class="row text-center g-3 mb-3">
+                <div class="col">
+                    <div class="ec-card p-3">
+                        <div class="fs-4 fw-semibold text-success">@Model.Attendance.PresentCount</div>
+                        <div class="small text-body-secondary">Present</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="ec-card p-3">
+                        <div class="fs-4 fw-semibold text-danger">@Model.Attendance.AbsentCount</div>
+                        <div class="small text-body-secondary">Absent</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="ec-card p-3">
+                        <div class="fs-4 fw-semibold text-warning">@Model.Attendance.LateCount</div>
+                        <div class="small text-body-secondary">Late</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="ec-card p-3">
+                        <div class="fs-4 fw-semibold">@Model.Attendance.AttendanceRate.ToString("0.##")%</div>
+                        <div class="small text-body-secondary">Rate</div>
+                    </div>
+                </div>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@(Model.Id)">Open Attendance Sheet</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,76 @@
+@model EduCore.ViewModels.FacultyStudentListVM
+@{
+    ViewData["Title"] = "My Students";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<h1 class="h3 mb-3">My Students</h1>
+
+<form method="get" class="toolbar-row mb-3">
+    <div class="toolbar-left">
+        <div class="input-group" style="width: 280px;">
+            <span class="input-group-text toolbar-input"><i class="bi bi-search"></i></span>
+            <input type="search" name="search" class="form-control toolbar-input" placeholder="Search by name, number, email" value="@Model.Query.Search" />
+        </div>
+
+        <select name="sectionId" class="form-select form-select-sm toolbar-select" style="width: auto; min-width:150px;" onchange="this.form.submit();">
+            <option value="">All Sections</option>
+            @foreach (var s in Model.Sections)
+            {
+                <option value="@s.Id" selected="@(Model.Query.SectionId == s.Id)">@s.GradeLevel.Name - @s.Name</option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (Model.Students.Items.Any())
+{
+    <table class="ec-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student</th>
+                <th>Section</th>
+                <th>Grade</th>
+                <th>Guardian</th>
+                <th>Email</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var st in Model.Students.Items)
+            {
+                <tr>
+                    <td>@st.StudentNumber</td>
+                    <td>@st.FullName</td>
+                    <td>@st.SectionName</td>
+                    <td>@st.GradeLevelName</td>
+                    <td>@st.GuardianName (@st.GuardianContact)</td>
+                    <td>@st.Email</td>
+                    <td class="text-end">
+                        <a asp-action="StudentDetail" asp-route-id="@st.Id" class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "Students",
+        Page = Model.Students.Page,
+        PageSize = Model.Students.PageSize,
+        TotalCount = Model.Students.TotalCount,
+        AriaLabel = "My Students pagination",
+        RouteValues = new Dictionary<string, object?>
+        {
+            ["search"] = Model.Query.Search,
+            ["sectionId"] = Model.Query.SectionId,
+            ["sortColumn"] = Model.Query.SortColumn,
+            ["sortDesc"] = Model.Query.SortDesc
+        }
+    }' />
+}
+else
+{
+    <div class="p-4 text-center text-body-secondary">No students found.</div>
+}
