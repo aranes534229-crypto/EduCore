@@ -138,7 +138,7 @@ public class InvoicesController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var inv = await _db.Invoices
-            .Include(i => i.Student)
+            .Include(i => i.Student).ThenInclude(s => s.Person)
             .Include(i => i.SchoolYear)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
@@ -149,7 +149,7 @@ public class InvoicesController : Controller
     public async Task<IActionResult> Receipt(int id)
     {
         var payment = await _db.Payments
-            .Include(p => p.Invoice).ThenInclude(i => i.Student)
+            .Include(p => p.Invoice).ThenInclude(i => i.Student).ThenInclude(s => s.Person)
             .Include(p => p.Invoice).ThenInclude(i => i.SchoolYear)
             .Include(p => p.Invoice).ThenInclude(i => i.Lines)
             .Include(p => p.Invoice).ThenInclude(i => i.Payments) // so Balance reflects all payments

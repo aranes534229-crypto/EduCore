@@ -170,7 +170,7 @@ public class ReportsController : Controller
 
         // Global figures stay global — computed from ALL invoices, not the filtered set.
         var invoices = await _db.Invoices
-            .Include(i => i.Student)
+            .Include(i => i.Student).ThenInclude(s => s.Person)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
             .ToListAsync();
