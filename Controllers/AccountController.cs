@@ -58,6 +58,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout(string? returnUrl = null)
     {
         await _signIn.SignOutAsync();
+        TempData["Info"] = "You have been signed out.";
         return RedirectToLocal(returnUrl) ?? RedirectToAction("Login", "Account");
     }
 

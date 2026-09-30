@@ -108,6 +108,79 @@ input:focus, select:focus, textarea:focus,
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--ec-accent);
 }
 
+/* Password toggle icon button */
+.toggle-pw {
+  opacity: 0.6;
+  transition: opacity .15s, color .15s;
+}
+.toggle-pw:hover {
+  opacity: 1;
+  color: var(--ec-accent) !important;
+  text-decoration: none;
+}
+.toggle-pw:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.15rem rgba(217, 119, 6, 0.25);
+  border-radius: 4px;
+}
+
+/* Login/Register page password toggle - higher specificity with .login-page prefix */
+.login-page .pw-toggle-wrap {
+  position: relative;
+}
+.login-page .pw-toggle-wrap .form-control {
+  padding-right: 3rem; /* space for icon button */
+}
+
+/* Ensure toggle button sits above browser autofill icons */
+.login-page .pw-toggle-wrap .toggle-pw {
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Hide browser autofill key/reveal icon */
+.login-page .pw-toggle-wrap .form-control::-webkit-credentials-auto-fill-button,
+.login-page .pw-toggle-wrap .form-control::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Prevent autofill background */
+.login-page .pw-toggle-wrap .form-control:-webkit-autofill,
+.login-page .pw-toggle-wrap .form-control:-webkit-autofill:hover,
+.login-page .pw-toggle-wrap .form-control:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+}
+
+/* Form checkbox (Remember Me) - proper checked + focus states */
+.form-check-input {
+  appearance: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.15em;
+  vertical-align: top;
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+}
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+  background-size: 1.25rem 1.25rem;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.form-check-input:focus {
+  border-color: var(--ec-accent);
+  box-shadow: 0 0 0 0.15rem rgba(217, 119, 6, 0.25);
+}
+
 /* Form floating placeholder tweaks */
 .form-floating > .form-control-plaintext::placeholder,
 .form-floating > .form-control::placeholder {

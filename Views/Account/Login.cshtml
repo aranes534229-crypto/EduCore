@@ -115,8 +115,6 @@
         .login-page .form-label { font-size:.8rem; font-weight:600; color:#64748b !important; letter-spacing:.03em; }
         .login-page .input-group-text { background:transparent; border:none; color:#64748b; padding:0 .5rem; }
         .login-page .pw-toggle-wrap { position:relative; }
-        .login-page .pw-toggle-wrap input { padding-right:2.6rem; }
-        .login-page .toggle-pw { position:absolute; right:.5rem; top:50%; transform:translateY(-50%); padding:.2rem .25rem; font-size:.8rem; font-weight:600; color:#64748b; }
         .login-page .btn-signin {
             background-color: #d97706 !important;
             border-color: #d97706 !important;
@@ -151,6 +149,7 @@
 
             <form asp-controller="Account" asp-action="Login" method="post" autocomplete="on">
                 <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                 <div class="mb-3">
                     <label asp-for="Email" class="form-label">Email address</label>
                     <input asp-for="Email" class="form-control" placeholder="you@school.edu" autocomplete="username" />
@@ -158,11 +157,12 @@
                 </div>
                 <div class="mb-3">
                     <label asp-for="Password" class="form-label">Password</label>
-                    <div class="pw-toggle-wrap">
+                    <div class="pw-toggle-wrap position-relative">
                         <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" autocomplete="current-password" />
-                        <span class="toggle-pw" style="cursor:pointer" tabindex="0" role="button" aria-label="Show password">
-                            <span class="d-none" data-hide>Hide</span><span data-show>Show</span>
-                        </span>
+                        <button type="button" class="btn btn-link p-0 toggle-pw position-absolute top-50 end-0 translate-middle-y me-2" aria-label="Toggle password visibility" style="z-index: 10; color: var(--ec-ink-dim);">
+                            <i class="bi bi-eye" data-show style="font-size: 1.1rem;"></i>
+                            <i class="bi bi-eye-slash d-none" data-hide style="font-size: 1.1rem;"></i>
+                        </button>
                     </div>
                     <span asp-validation-for="Password" class="text-danger small"></span>
                 </div>
@@ -170,7 +170,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
                         <input asp-for="RememberMe" class="form-check-input" />
-                        <label asp-for="RememberMe" class="form-check-label"> Remember Me</label>
+                        <label asp-for="RememberMe" class="form-check-label">Remember Me</label>
                     </div>
                 </div>
 
@@ -191,12 +191,13 @@
 
     <script>
         (function () {
-            var pw = document.querySelector('input[name="Password"]');
             var toggles = document.querySelectorAll('.toggle-pw');
             toggles.forEach(function (t) {
                 t.addEventListener('click', function () {
-                    var type = pw.type === 'password' ? 'text' : 'password';
-                    pw.type = type;
+                    var wrap = t.closest('.pw-toggle-wrap');
+                    var input = wrap.querySelector('input[type="password"], input[type="text"]');
+                    var type = input.type === 'password' ? 'text' : 'password';
+                    input.type = type;
                     t.querySelector('[data-hide]').classList.toggle('d-none', type === 'password');
                     t.querySelector('[data-show]').classList.toggle('d-none', type !== 'password');
                 });

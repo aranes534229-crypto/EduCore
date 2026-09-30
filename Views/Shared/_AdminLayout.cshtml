@@ -289,9 +289,9 @@
                     <svg class="ec-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" stroke-width="1"/><path d="M10.293 6.293a1 1 0 0 1 1.414 0l.707.707a1 1 0 0 1 .263.707V11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 .263-.707l.707-.707a1 1 0 0 1 1.414 0L7.293 8v2.5a.75.75 0 1 0 1.5 0V8l1.5-1.707z"/></svg>
                     <span>Settings</span>
                 </a>
-                <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@(Url.Action("Index", "Home"))" method="post">
+                <form asp-controller="Account" asp-action="Logout" asp-route-returnUrl="@(Url.Action("Index", "Home"))" method="post" data-confirm-message="Are you sure you want to sign out?" data-confirm-title="Sign Out">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="ec-user-menu-item ec-signout">
+                    <button type="button" class="ec-user-menu-item ec-signout" data-bs-toggle="modal" data-bs-target="#confirmModal">
                         <svg class="ec-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 16 16"><path d="M1 4.5a1 1 0 0 1 1-1h5.586a.5.5 0 0 1 .354.146l4.5 4.5a.5.5 0 0 1 0 .708l-4.5 4.5A.5.5 0 0 1 7 11.414V7H2V4.5zM12 2.5v4a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1 0-1h.5v-3h1a.5.5 0 0 1 .5.5zm-1 7.5v4a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1 0 1h-.5v-3h1a.5.5 0 0 1 .5.5z"/></svg>
                         <span>Sign Out</span>
                     </button>
@@ -374,6 +374,7 @@
             }
         })();
     </script>
+    <partial name="_ConfirmModal" />
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
