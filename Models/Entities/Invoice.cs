@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EduCore.Models.Entities;
 
+/// <summary>Module 3 — payment state of an invoice, derived from its balance (never stored).
+/// Unpaid = no payments yet, PartiallyPaid = some but not all, PaidInFull = balance is zero.</summary>
+public enum InvoicePaymentStatus { Unpaid, PartiallyPaid, PaidInFull }
+
 /// <summary>Module 3 — a bill for one student for a school year. Lines snapshot the fees at issue
 /// time; balance is Total minus all Payments, no separate amount column to keep in sync.</summary>
 public class Invoice

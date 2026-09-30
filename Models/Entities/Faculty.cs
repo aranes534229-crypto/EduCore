@@ -2,26 +2,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EduCore.Models.Entities;
 
-/// <summary>A teacher's record. Their login account links in via ApplicationUserId.</summary>
+/// <summary>A teacher's record. Their profile links in via Person.</summary>
 public class Faculty
 {
     public int Id { get; set; }
 
     [Required]
-    public string FirstName { get; set; } = "";
+    public string EmployeeNumber { get; set; } = "";
 
-    [Required]
-    public string LastName { get; set; } = "";
+    public DateTime HireDate { get; set; } = DateTime.UtcNow;
 
-    [EmailAddress]
-    public string Email { get; set; } = "";
-
-    public string Contact { get; set; } = "";
-
-    /// <summary>Login of the Faculty account, if one was created.</summary>
-    public string? ApplicationUserId { get; set; }
+    public int? PersonId { get; set; }
+    public Person? Person { get; set; }
 
     public bool IsActive { get; set; } = true;
 
-    public string FullName => $"{FirstName} {LastName}";
+    public string FullName => Person?.FullName ?? "";
+    public string Email => Person?.Email ?? "";
+    public string Contact => Person?.Phone ?? "";
 }

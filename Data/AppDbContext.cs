@@ -12,6 +12,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<SchoolYear> SchoolYears => Set<SchoolYear>();
     public DbSet<GradeLevel> GradeLevels => Set<GradeLevel>();
+    public DbSet<Person> Persons => Set<Person>();
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<Faculty> Faculty => Set<Faculty>();
@@ -35,6 +36,31 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
+
+        // Person (shared profile) — one-to-one with ApplicationUser, Faculty, Student
+        b.Entity<Person>()
+            .HasOne(p => p.User)
+            .WithOne(u => u.Person)
+            .HasForeignKey<ApplicationUser>(u => u.PersonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        b.Entity<Person>()
+            .HasOne(p => p.Faculty)
+            .WithOne(f => f.Person)
+            .HasForeignKey<Faculty>(f => f.PersonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        b.Entity<Person>()
+            .HasOne(p => p.Student)
+            .WithOne(s => s.Person)
+            .HasForeignKey<Student>(s => s.PersonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Unique email on Person for lookup
+        b.Entity<Person>()
+            .HasIndex(p => p.Email)
+            .IsUnique()
+            .HasFilter("[Email] IS NOT NULL AND [Email] <> ''");
 
         // Roles are seeded at runtime (see DbSeeder via RoleManager) rather than via
         // HasData, because IdentityRole uses dynamic values that EF flags as a

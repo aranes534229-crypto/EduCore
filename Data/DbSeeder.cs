@@ -21,7 +21,6 @@ public static class DbSeeder
             {
                 UserName = "admin@educore.local",
                 Email = "admin@educore.local",
-                DisplayName = "System Admin",
                 EmailConfirmed = true
             };
             var result = await users.CreateAsync(admin, "Admin123!");
@@ -35,7 +34,6 @@ public static class DbSeeder
             {
                 UserName = "finance@educore.local",
                 Email = "finance@educore.local",
-                DisplayName = "Lina Reyes",
                 EmailConfirmed = true
             };
             var result = await users.CreateAsync(finance, "Finance123!");
@@ -49,7 +47,6 @@ public static class DbSeeder
             {
                 UserName = "parent@educore.local",
                 Email = "parent@educore.local",
-                DisplayName = "Maria Dela Cruz",
                 EmailConfirmed = true
             };
             var result = await users.CreateAsync(parent, "Parent123!");
@@ -63,7 +60,6 @@ public static class DbSeeder
             {
                 UserName = "reg@educore.local",
                 Email = "reg@educore.local",
-                DisplayName = "Rosa Tan",
                 EmailConfirmed = true
             };
             var result = await users.CreateAsync(registrar, "Registrar123!");
@@ -80,45 +76,64 @@ public static class DbSeeder
             });
 
         if (!await db.Students.AnyAsync())
+        {
+            var person = new Person
+            {
+                FirstName = "Juan",
+                LastName = "Dela Cruz",
+                Email = "maria.delacruz@example.com",
+                Phone = "0917-000-0000",
+                Address = "123 Mabini St."
+            };
+            db.Persons.Add(person);
+            await db.SaveChangesAsync();
+
             db.Students.Add(new Student
             {
                 StudentNumber = "1001",
-                FirstName = "Juan",
-                LastName = "Dela Cruz",
                 BirthDate = new DateTime(2016, 3, 14),
-                Address = "123 Mabini St.",
                 GuardianName = "Maria Dela Cruz",
                 GuardianContact = "0917-000-0000",
-                GuardianEmail = "maria.delacruz@example.com"
+                GuardianEmail = "maria.delacruz@example.com",
+                PersonId = person.Id
             });
+        }
 
         if (!await db.Faculty.AnyAsync())
         {
-            var teacher = new Faculty
+            var person = new Person
             {
                 FirstName = "Ana",
                 LastName = "Santos",
                 Email = "teacher@educore.local",
-                Contact = "0918-000-0000",
-                IsActive = true
+                Phone = "0918-000-0000",
+            };
+            db.Persons.Add(person);
+            await db.SaveChangesAsync();
+
+            var teacher = new Faculty
+            {
+                EmployeeNumber = "EMP-001",
+                HireDate = DateTime.Today.AddYears(-2),
+                IsActive = true,
+                PersonId = person.Id
             };
             db.Faculty.Add(teacher);
 
             // Give the demo teacher a login in the Faculty role so the portal is testable.
-            if ((await users.FindByEmailAsync(teacher.Email)) is null)
+            if ((await users.FindByEmailAsync(person.Email)) is null)
             {
                 var acct = new ApplicationUser
                 {
-                    UserName = teacher.Email,
-                    Email = teacher.Email,
-                    DisplayName = teacher.FullName,
+                    UserName = person.Email,
+                    Email = person.Email,
+                    PersonId = person.Id,
                     EmailConfirmed = true
                 };
                 var result = await users.CreateAsync(acct, "Teacher123!");
                 if (result.Succeeded)
                 {
                     await users.AddToRoleAsync(acct, AppRoles.Faculty);
-                    teacher.ApplicationUserId = acct.Id;
                 }
             }
         }
@@ -132,90 +147,92 @@ public static class DbSeeder
         var parentUser = await users.FindByEmailAsync("parent@educore.local");
         if (parentUser is not null)
         {
-            var unlinked = await db.Students.Where(s => s.ApplicationUserId == null).ToListAsync();
+            var unlinked = await db.Students.Where(s => s.PersonId == parentUser.PersonId).ToListAsync();
             if (unlinked.Count > 0)
             {
-                foreach (var s in unlinked) s.ApplicationUserId = parentUser.Id;
+                foreach (var s in unlinked) s.PersonId = parentUser.PersonId;
                 await db.SaveChangesAsync();
-                Console.WriteLine($"[SEED] Linked {unlinked.Count} student(s) to parent {parentUser.DisplayName}.");
+                Console.WriteLine($"[SEED] Linked {unlinked.Count} student(s) to parent {parentUser.UserName}.");
             }
         }
 
-// Module 8 — one lead inquiry, assigned to the Registrar for follow-up.
-            var regUser = await users.FindByEmailAsync("reg@educore.local");
-            Console.WriteLine($"[SEED] regUser found: {regUser?.DisplayName}");
-            Console.WriteLine($"[SEED] parentUser found: {parentUser?.DisplayName}");
-            Console.WriteLine($"[SEED] Inquiries already exist: {await db.Inquiries.AnyAsync()}");
-            if (regUser is not null && !await db.Inquiries.AnyAsync())
+        // Module 8 — one lead inquiry, assigned to the Registrar for follow-up.
+        var regUser = await users.FindByEmailAsync("reg@educore.local");
+        Console.WriteLine($"[SEED] regUser found: {regUser?.UserName}");
+        Console.WriteLine($"[SEED] parentUser found: {parentUser?.UserName}");
+        Console.WriteLine($"[SEED] Inquiries already exist: {await db.Inquiries.AnyAsync()}");
+        if (regUser is not null && !await db.Inquiries.AnyAsync())
+        {
+            Console.WriteLine("[SEED] Inserting inquiries...");
+            db.Inquiries.Add(new Inquiry
             {
-                Console.WriteLine("[SEED] Inserting inquiries...");
-                db.Inquiries.Add(new Inquiry
-                {
-                    StudentName = "Karla Reyes",
-                    GradeLevelId = 1,
-                    ContactEmail = "karla.reyes@example.com",
-                    ContactPhone = "0919-000-0000",
-                    InternalNotes = "Walk-in visit; interested in Grade 1.",
-                    Source = "Walk-in",
-                    Type = "Admissions",
-                    AssignedToId = regUser.Id,
-                    Status = InquiryStatus.New,
-                    DateCreated = DateTime.Today.AddDays(-1)
-                });
-                await db.SaveChangesAsync();
+                StudentName = "Karla Reyes",
+                GradeLevelId = 1,
+                ContactEmail = "karla.reyes@example.com",
+                ContactPhone = "0919-000-0000",
+                InternalNotes = "Walk-in visit; interested in Grade 1.",
+                Source = "Walk-in",
+                Type = "Admissions",
+                AssignedToId = regUser.Id,
+                Status = InquiryStatus.New,
+                DateCreated = DateTime.Today.AddDays(-1),
+                InquiryNumber = "INQ-1001"
+            });
+            await db.SaveChangesAsync();
 
-                // Parent-submitted inquiry (logged in as Maria Dela Cruz) for testing the portal.
-                db.Inquiries.Add(new Inquiry
-                {
-                    StudentName = "Sofia Dela Cruz",
-                    GradeLevelId = 1,
-                    ContactEmail = "parent@educore.local",
-                    ContactPhone = "0917-123-4567",
-                    Source = "Website",
-                    Type = "Admissions",
-                    CreatedByUserId = parentUser?.Id,
-                    Status = InquiryStatus.New,
-                    DateCreated = DateTime.Today.AddDays(-2)
-                });
-                await db.SaveChangesAsync();
-                Console.WriteLine("[SEED] Inquiries saved.");
+            // Parent-submitted inquiry (logged in as Maria Dela Cruz) for testing the portal.
+            db.Inquiries.Add(new Inquiry
+            {
+                StudentName = "Sofia Dela Cruz",
+                GradeLevelId = 1,
+                ContactEmail = "parent@educore.local",
+                ContactPhone = "0917-123-4567",
+                Source = "Website",
+                Type = "Admissions",
+                CreatedByUserId = parentUser?.Id,
+                Status = InquiryStatus.New,
+                DateCreated = DateTime.Today.AddDays(-2),
+                InquiryNumber = "INQ-1002"
+            });
+            await db.SaveChangesAsync();
+            Console.WriteLine("[SEED] Inquiries saved.");
 
-                // Add the parent's question as the first thread note.
-                var sofiaInquiry = await db.Inquiries.FirstOrDefaultAsync(i => i.StudentName == "Sofia Dela Cruz");
-                Console.WriteLine($"[SEED] Sofia found: {sofiaInquiry?.Id}");
-                if (sofiaInquiry is not null)
+            // Add the parent's question as the first thread note.
+            var sofiaInquiry = await db.Inquiries.FirstOrDefaultAsync(i => i.StudentName == "Sofia Dela Cruz");
+            Console.WriteLine($"[SEED] Sofia found: {sofiaInquiry?.Id}");
+            if (sofiaInquiry is not null)
+            {
+                var note = new InquiryNote
                 {
-                    var note = new InquiryNote
-                    {
-                        InquiryId = sofiaInquiry.Id,
-                        StaffId = null,
-                        Visibility = "Parent",
-                        Body = "New inquiry submitted — awaiting registrar follow-up.",
-                        Timestamp = sofiaInquiry.DateCreated
-                    };
-                    Console.WriteLine($"[SEED] Adding note for inquiry {note.InquiryId}, body: {note.Body}");
-                    db.Entry(note).State = EntityState.Added;
-                    var result = await db.SaveChangesAsync();
-                    Console.WriteLine($"[SEED] SaveChanges result: {result}");
-                }
-
-                // Registrar follow-up reply to demonstrate the conversation thread.
-                if (sofiaInquiry is not null && regUser is not null)
-                {
-                    sofiaInquiry.AssignedToId = regUser.Id;
-                    sofiaInquiry.FirstResponseAt = DateTime.UtcNow.AddDays(-1);
-                    db.InquiryNotes.Add(new InquiryNote
-                    {
-                        InquiryId = sofiaInquiry.Id,
-                        StaffId = regUser.Id,
-                        Visibility = "Parent",
-                        Body = "Thank you for your inquiry! We do have open slots in Grade 1-A for the 2025-2026 school year. Please schedule a campus visit by booking through our portal.",
-                        Timestamp = DateTime.UtcNow.AddDays(-1)
-                    });
-                    await db.SaveChangesAsync();
-                    Console.WriteLine($"[SEED] Follow-up note saved. Count after: {await db.InquiryNotes.CountAsync()}");
-                }
+                    InquiryId = sofiaInquiry.Id,
+                    StaffId = null,
+                    Visibility = "Parent",
+                    Body = "New inquiry submitted — awaiting registrar follow-up.",
+                    Timestamp = sofiaInquiry.DateCreated
+                };
+                Console.WriteLine($"[SEED] Adding note for inquiry {note.InquiryId}, body: {note.Body}");
+                db.Entry(note).State = EntityState.Added;
+                var result = await db.SaveChangesAsync();
+                Console.WriteLine($"[SEED] SaveChanges result: {result}");
             }
+
+            // Registrar follow-up reply to demonstrate the conversation thread.
+            if (sofiaInquiry is not null && regUser is not null)
+            {
+                sofiaInquiry.AssignedToId = regUser.Id;
+                sofiaInquiry.FirstResponseAt = DateTime.UtcNow.AddDays(-1);
+                db.InquiryNotes.Add(new InquiryNote
+                {
+                    InquiryId = sofiaInquiry.Id,
+                    StaffId = regUser.Id,
+                    Visibility = "Parent",
+                    Body = "Thank you for your inquiry! We do have open slots in Grade 1-A for the 2025-2026 school year. Please schedule a campus visit by booking through our portal.",
+                    Timestamp = DateTime.UtcNow.AddDays(-1)
+                });
+                await db.SaveChangesAsync();
+                Console.WriteLine($"[SEED] Follow-up note saved. Count after: {await db.InquiryNotes.CountAsync()}");
+            }
+        }
 
         // Module 7 — one welcome announcement so the CMS board is populated.
         if (!await db.Announcements.AnyAsync())
@@ -246,9 +263,12 @@ public static class DbSeeder
         // Module 3 — Tuition & Billing demo data: one master tuition Fee per grade level
         // (linked via GradeLevelId), so scheduling auto-billing has a fee to find.
         // Misc/Activity fees are shared rows with GradeLevelId null (created manually later).
+        // ponytail: EnsureExistingFeesHaveLines — backfill FeeLine rows for Fees created
+        // before the line-item refactor (they have no Lines yet). Idempotent: skips fees
+        // that already have active lines.
+        var gradeLevels = await db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync();
         if (!await db.Fees.AnyAsync(f => f.GradeLevelId.HasValue))
         {
-            var gradeLevels = await db.GradeLevels.OrderBy(g => g.SortOrder).ToListAsync();
             db.Fees.AddRange(gradeLevels.Select(g => new Fee
             {
                 Name = $"{g.Name} Tuition",
@@ -260,6 +280,20 @@ public static class DbSeeder
                 }
             }));
             await db.SaveChangesAsync();
+        }
+        else
+        {
+            // Backfill: any existing Fee with a GradeLevelId but no active lines gets seeded from GradeLevel.Amount.
+            var feesNeedingLines = await db.Fees
+                .Include(f => f.Lines)
+                .Where(f => f.GradeLevelId.HasValue && !f.Lines.Any(l => l.IsActive))
+                .ToListAsync();
+            foreach (var fee in feesNeedingLines)
+            {
+                var gradeAmount = gradeLevels.FirstOrDefault(g => g.Id == fee.GradeLevelId)?.Amount ?? 0m;
+                fee.Lines.Add(new FeeLine { Description = "Tuition", Amount = gradeAmount, IsActive = true });
+            }
+            if (feesNeedingLines.Any()) await db.SaveChangesAsync();
         }
 
         // Module 6 — Accounting demo data: one expense so the ledger shows a negative move out.
@@ -276,8 +310,8 @@ public static class DbSeeder
         }
 
         var activeYear = await db.SchoolYears.FirstOrDefaultAsync(y => y.IsActive);
-        var juan = await db.Students.FirstOrDefaultAsync(s => s.LastName == "Dela Cruz");
-        var ana = await db.Faculty.FirstOrDefaultAsync(f => f.Email == "teacher@educore.local");
+        var juan = await db.Students.Include(s => s.Person).FirstOrDefaultAsync(s => s.Person!.LastName == "Dela Cruz");
+        var ana = await db.Faculty.Include(f => f.Person).FirstOrDefaultAsync(f => f.Person!.Email == "teacher@educore.local");
 
         // Module 3 — seed one invoice + partial payment for Juan so the parent portal shows the
         // harmonized Tuition & Billing layout (status badge, payment history, account-only payment)
@@ -327,15 +361,24 @@ public static class DbSeeder
 
         // Module 5 — an enrolled student who is NOT yet placed in a section, so the
         // Registrar has someone to schedule (unscheduled pool) and hand to Finance.
-        if (activeYear is not null && !await db.Students.AnyAsync(s => s.LastName == "Ramos"))
+        if (activeYear is not null && !await db.Students.Include(s => s.Person).AnyAsync(s => s.Person!.LastName == "Ramos"))
         {
+            var person = new Person
+            {
+                FirstName = "Luis",
+                LastName = "Ramos",
+                Email = "nena.ramos@example.com",
+                Phone = "0917-000-1111"
+            };
+            db.Persons.Add(person);
+            await db.SaveChangesAsync();
+
             var luis = new Student
             {
                 StudentNumber = "1002",
-                FirstName = "Luis",
-                LastName = "Ramos",
                 GuardianName = "Nena Ramos",
-                GuardianContact = "0917-000-1111"
+                GuardianContact = "0917-000-1111",
+                PersonId = person.Id
             };
             db.Students.Add(luis);
             await db.SaveChangesAsync();
@@ -383,15 +426,24 @@ public static class DbSeeder
         // Mirrors the Grade 1-A block above: a Grade 2 section + one unplaced student with an
         // Unscheduled Grade 2 enrollment. Opening the Grade 2 Schedule page should list Miguel only —
         // Luis (an unplaced, Unscheduled Grade 1 student) must be excluded, proving the pool branches by grade.
-        if (activeYear is not null && !await db.Students.AnyAsync(s => s.LastName == "Santos"))
+        if (activeYear is not null && !await db.Students.Include(s => s.Person).AnyAsync(s => s.Person!.LastName == "Santos"))
         {
+            var person = new Person
+            {
+                FirstName = "Miguel",
+                LastName = "Santos",
+                Email = "lola.santos@example.com",
+                Phone = "0917-000-2222"
+            };
+            db.Persons.Add(person);
+            await db.SaveChangesAsync();
+
             var miguel = new Student
             {
                 StudentNumber = "1003",
-                FirstName = "Miguel",
-                LastName = "Santos",
                 GuardianName = "Lola Santos",
-                GuardianContact = "0917-000-2222"
+                GuardianContact = "0917-000-2222",
+                PersonId = person.Id
             };
             db.Students.Add(miguel);
             await db.SaveChangesAsync();
@@ -418,12 +470,12 @@ public static class DbSeeder
         }
 
         // Module 7 — a seeded teacher→parent message about Juan, so the inbox has content.
-        if (ana?.ApplicationUserId is not null && juan?.ApplicationUserId is not null && !await db.Messages.AnyAsync())
+        if (ana?.Person?.User is not null && juan?.Person?.User is not null && !await db.Messages.AnyAsync())
         {
             db.Messages.Add(new Message
             {
-                SenderId = ana.ApplicationUserId,
-                RecipientId = juan.ApplicationUserId,
+                SenderId = ana.Person.User.Id,
+                RecipientId = juan.Person.User.Id,
                 StudentId = juan.Id,
                 Body = "Welcome to Grade 1-A! Reach me through this portal anytime.",
                 SentAt = DateTime.UtcNow.AddDays(-1),
@@ -441,12 +493,61 @@ public static class DbSeeder
         };
         foreach (var (last, seq) in demoNumbers)
         {
-            var st = await db.Students.FirstOrDefaultAsync(s => s.LastName == last);
+            var st = await db.Students.Include(s => s.Person).FirstOrDefaultAsync(s => s.Person!.LastName == last);
             var want = $"{1000 + seq:D4}";
             if (st is not null && st.StudentNumber != want)
             {
                 st.StudentNumber = want;
                 await db.SaveChangesAsync();
+            }
+        }
+
+        // Backfill: ensure every user with Faculty role has a Faculty record linked to their Person
+        var facultyRole = await roles.FindByNameAsync(AppRoles.Faculty);
+        if (facultyRole is not null)
+        {
+            var facultyUserIds = await db.UserRoles
+                .Where(ur => ur.RoleId == facultyRole.Id)
+                .Select(ur => ur.UserId)
+                .ToListAsync();
+
+            var facultyUsers = await users.Users
+                .Include(u => u.Person)
+                .Where(u => facultyUserIds.Contains(u.Id))
+                .ToListAsync();
+
+            foreach (var u in facultyUsers)
+            {
+                if (u.PersonId is null)
+                {
+                    // Create Person from email if missing
+                    var email = u.Email ?? "";
+                    var parts = email.Split('@')[0].Split('.', '_', '-');
+                    var person = new Person
+                    {
+                        FirstName = parts.FirstOrDefault() ?? "Teacher",
+                        LastName = parts.Skip(1).FirstOrDefault() ?? "",
+                        Email = email
+                    };
+                    db.Persons.Add(person);
+                    await db.SaveChangesAsync();
+                    u.PersonId = person.Id;
+                    await users.UpdateAsync(u);
+                }
+
+                if (u.PersonId is not null && !await db.Faculty.AnyAsync(f => f.PersonId == u.PersonId))
+                {
+                    var facultyCount = await db.Faculty.CountAsync();
+                    db.Faculty.Add(new Faculty
+                    {
+                        PersonId = u.PersonId.Value,
+                        EmployeeNumber = $"EMP-{1001 + facultyCount:D4}",
+                        HireDate = DateTime.Today,
+                        IsActive = true
+                    });
+                    await db.SaveChangesAsync();
+                    Console.WriteLine($"[SEED] Backfilled Faculty record for {u.Email}");
+                }
             }
         }
     }
