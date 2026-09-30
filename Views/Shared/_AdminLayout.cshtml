@@ -4,6 +4,7 @@
     Layout = null;
     var title = ViewData["Title"] as string ?? "EduCore";
     var activeController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var activeAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +13,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(title + " - EduCore")</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="icon" type="image/jpeg" href="~/images/logo-educore.jpg" asp-append-version="true" />
+    <link rel="apple-touch-icon" href="~/images/logo-educore.jpg" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,opsz,wght@0,36..84,400;1,36..84,400&display=swap" rel="stylesheet">
@@ -26,8 +30,13 @@
     <nav class="ec-sidebar" id="ecSidebar" role="navigation" aria-label="Admin navigation">
         <!-- Brand -->
         <div class="ec-brand">
-            <span class="ec-mark font-display">E</span>
+            <span class="ec-logo-wrap" aria-hidden="true">
+                <img src="~/images/logo-educore.jpg" alt="EduCore" class="ec-logo" />
+            </span>
             <span class="ec-brand-text">Edu<span class="ec-dot">Core</span></span>
+            <button class="btn btn-link p-0 ms-auto" type="button" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar" title="Collapse sidebar">
+                <svg class="bi bi-chevron-left" width="1.25rem" height="1.25rem" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+            </button>
         </div>
 
         <!-- Search -->
@@ -37,127 +46,239 @@
 
         <!-- Navigation -->
         <div class="ec-nav">
-            <div class="ec-section">Main</div>
-
-            <a class="nav-link @(activeController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
-                <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M8 .5l6 5.5v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3H8v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6L8 .5z"/></svg>
-                Home
+            <!-- Dashboard -->
+            @{
+                string dashController = "Home";
+                string dashAction = "Index";
+                if (User.IsInRole("Admin")) { dashController = "AdminDashboard"; dashAction = "Index"; }
+                else if (User.IsInRole("Registrar")) { dashController = "RegistrarDashboard"; dashAction = "Index"; }
+                else if (User.IsInRole("Faculty")) { dashController = "FacultyPortal"; dashAction = "Index"; }
+                else if (User.IsInRole("Parent")) { dashController = "ParentDashboard"; dashAction = "Index"; }
+                else if (User.IsInRole("Finance")) { dashController = "FinanceDashboard"; dashAction = "Index"; }
+            }
+            <a class="nav-link @(activeController == dashController && activeAction == dashAction ? "active" : "")" asp-controller="@dashController" asp-action="@dashAction">
+                <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M8 .5l6 5.5v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3H8v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6L8 .5z"/></svg>
+                Dashboard
             </a>
 
-            @if (!User.IsInRole("Parent"))
-            {
-            <a class="nav-link @(activeController == "Students" ? "active" : "")" asp-controller="Students" asp-action="Index">
-                <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M4 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
-                Students
-            </a>
+            <!-- ACADEMICS -->
+            @{
+                bool academicsVisible =
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance")) || // Students
+                    (User.IsInRole("Admin")) || // Faculty
+                    (User.IsInRole("Admin")) || // Subjects
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar")) || // Sections
+                    (User.IsInRole("Admin") || User.IsInRole("Faculty")); // Gradebook
 
-            @if (User.IsInRole("Admin") || User.IsInRole("Registrar"))
+                var academicsActive = academicsVisible &&
+                    (activeController == "Students" || activeController == "Faculty" ||
+                     activeController == "Subjects" || activeController == "Sections" ||
+                     activeController == "Gradebook");
+            }
+            @if (academicsVisible)
             {
-            <a class="nav-link @(activeController == "Sections" ? "active" : "")" asp-controller="Sections" asp-action="Index">
-                <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5a.5.5 0 0 1 .5-.5h4.559c1.098 0 1.892.698 2.125 1.675A.5.5 0 0 1 8.559 5H2.5a.5.5 0 0 1-.5-.5z"/><path d="M2 7a.5.5 0 0 1 .5-.5h7.059a.5.5 0 0 1 .43.75A1.5 1.5 0 0 0 10.5 9.5H2.5a.5.5 0 0 1-.5-.5zm0 4.5a.5.5 0 0 1 .5-.5h5.059a.5.5 0 0 1 .43.75 1.5 1.5 0 0 0 1.483 1.25H2.5a.5.5 0 0 1-.5-.5z"/></svg>
-                @(User.IsInRole("Registrar") ? "Class Schedule" : "Sections")
-            </a>
-
-            <a class="nav-link @(activeController == "Enrollments" ? "active" : "")" asp-controller="Enrollments" asp-action="Index">
-                <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h10A1.5 1.5 0 0 1 14 3.5V5a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3.5zM11 6h3.5a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-3v-6zm-3 0h3v6H8V6z"/></svg>
-                Enrollments
-            </a>
+                <button class="nav-parent @(academicsActive ? "active-parent" : "")"
+                        data-bs-toggle="collapse" data-bs-target="#collapseAcademics"
+                        aria-expanded="@academicsActive.ToString().ToLower()" aria-controls="collapseAcademics">
+                    <span>
+                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm8.563.997C12.978 2.923 13.79 3.15 14.5 3.5v9.5c-.71-.35-1.522-.58-2.437-.679-1.14-.12-2.36.218-3.288.811V3.825z"/></svg>
+                        Academics
+                    </span>
+                    <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+                </button>
+                <div class="collapse @(academicsActive ? "show" : "")" id="collapseAcademics">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance"))
+                    {
+                        <a class="nav-link @(activeController == "Students" && activeAction == "Index" ? "active" : "")" asp-controller="Students" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M4 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+                            Students
+                        </a>
+                    }
+                    else if (User.IsInRole("Faculty"))
+                    {
+                        <a class="nav-link @(activeController == "FacultyPortal" && activeAction == "Students" ? "active" : "")" asp-controller="FacultyPortal" asp-action="Students">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M4 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+                            My Students
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a class="nav-link @(activeController == "Faculty" ? "active" : "")" asp-controller="Faculty" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2.5zm9.5 0v1H4V2.5h7.5zm-7 10.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-6H4v6z"/></svg>
+                            Faculty
+                        </a>
+                        <a class="nav-link @(activeController == "Subjects" ? "active" : "")" asp-controller="Subjects" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M4 6h8v1H4V6zm0 3h8v1H4V9zm0 3h4v1H4z"/><path d="M14 3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1v-1H5V5a2 2 0 0 1 2-2h7z"/></svg>
+                            Subjects
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar"))
+                    {
+                        <a class="nav-link @(activeController == "Sections" ? "active" : "")" asp-controller="Sections" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5a.5.5 0 0 1 .5-.5h4.559c1.098 0 1.892.698 2.125 1.675A.5.5 0 0 1 8.559 5H2.5a.5.5 0 0 1-.5-.5z"/><path d="M2 7a.5.5 0 0 1 .5-.5h7.059a.5.5 0 0 1 .43.75A1.5 1.5 0 0 0 10.5 9.5H2.5a.5.5 0 0 1-.5-.5zm0 4.5a.5.5 0 0 1 .5-.5h5.059a.5.5 0 0 1 .43.75 1.5 1.5 0 0 0 1.483 1.25H2.5a.5.5 0 0 1-.5-.5z"/></svg>
+                            @(User.IsInRole("Registrar") ? "Class Schedule" : "Sections")
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Faculty"))
+                    {
+                        <a class="nav-link @(activeController == "Gradebook" ? "active" : "")" asp-controller="Gradebook" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a.5.5 0 0 1 .5-.5h11A.5.5 0 0 1 14 2v12a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 2 14V2zm1 12h10V3H3v11z"/><path d="M5 6h6v1H5zM5 8h6v1H5zM5 10h6v1H5z"/></svg>
+                            Gradebook
+                        </a>
+                    }
+                </div>
             }
 
-            @if (User.IsInRole("Admin"))
-            {
-                <a class="nav-link @(activeController == "Faculty" ? "active" : "")" asp-controller="Faculty" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2.5zm9.5 0v1H4V2.5h7.5zm-7 10.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-6H4v6z"/></svg>
-                    Faculty
-                </a>
-                <a class="nav-link @(activeController == "Subjects" ? "active" : "")" asp-controller="Subjects" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M4 6h8v1H4V6zm0 3h8v1H4V9zm0 3h4v1H4z"/><path d="M14 3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1v-1H5V5a2 2 0 0 1 2-2h7z"/></svg>
-                    Subjects
-                </a>
+            <!-- MANAGEMENT -->
+            @{
+                bool managementVisible =
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Parent")) || // Inquiries / My Inquiries
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar")) || // Enrollments
+                    (User.IsInRole("Admin")) || // Accounts
+                    (User.IsInRole("Admin")); // Fees
+
+                var managementActive = managementVisible &&
+                    (activeController == "Inquiries" || activeController == "Enrollments" ||
+                     activeController == "Accounts" || activeController == "Fees");
             }
-            }  @* /!Parent : hide Main staff links from Parent *@
-
-            @if (User.IsInRole("Parent"))
+            @if (managementVisible)
             {
-                <a class="nav-link @(activeController == "Inquiries" ? "active" : "")" asp-controller="Inquiries" asp-action="MyInquiries">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M5.25 2.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5zM10.75 8a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>
-                    My Inquiries
-                </a>
-                <a class="nav-link @(activeController == "ParentBilling" ? "active" : "")" asp-controller="ParentBilling" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h8l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2zm9.5 1.5L10 5h1.5V3.5z"/></svg>
-                    Tuition & Billing
-                </a>
-            }
-
-            <div class="ec-section">Management</div>
-
-            @if (!User.IsInRole("Parent"))
-            {
-            @if (User.IsInRole("Admin") || User.IsInRole("Registrar"))
-            {
-            <a class="nav-link @(activeController == "Inquiries" ? "active" : "")" asp-controller="Inquiries" asp-action="Index">
-                <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M5.25 2.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5zM10.75 8a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>
-                Inquiries
-            </a>
-            }
-
-            @if (User.IsInRole("Admin"))
-            {
-                <a class="nav-link @(activeController == "Fees" ? "active" : "")" asp-controller="Fees" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2zm9.5 6a.5.5 0 0 1-.5.5H5a.5.5 0 0 1 0-1h6a.5.5 0 0 1 .5.5z"/><path d="M4 11h8v1H4z"/></svg>
-                    Fees
-                </a>
-                <a class="nav-link @(activeController == "Accounts" ? "active" : "")" asp-controller="Accounts" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm6-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
-                    Accounts
-                </a>
-            }
-
-            @if (User.IsInRole("Admin") || User.IsInRole("Finance"))
-            {
-                <a class="nav-link @(activeController == "Invoices" ? "active" : "")" asp-controller="Invoices" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h8l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2zm9.5 1.5L10 5h1.5V3.5z"/></svg>
-                    Tuition & Billing
-                </a>
-                <a class="nav-link @(activeController == "Expenses" ? "active" : "")" asp-controller="Expenses" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5V5a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3.5zm0 8A1.5 1.5 0 0 1 2.5 10h11a1.5 1.5 0 0 1 1.5 1.5v2a.5.5 0 0 1-.5.5h-12a.5.5 0 0 1-.5-.5v-2zm1 1h12V10H2.5v2.5zM4 7a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 7z"/></svg>
-                    Accounting & Expenses
-                </a>
+                <button class="nav-parent @(managementActive ? "active-parent" : "")"
+                        data-bs-toggle="collapse" data-bs-target="#collapseManagement"
+                        aria-expanded="@managementActive.ToString().ToLower()" aria-controls="collapseManagement">
+                    <span>
+                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14H5v1.5A1.5 1.5 0 0 0 6.5 17h3a1.5 1.5 0 0 0 1.5-1.5V14h3.5A1.5 1.5 0 0 0 16 12.5v-8A1.5 1.5 0 0 0 14.5 3H11V2.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5z"/></svg>
+                        Management
+                    </span>
+                    <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+                </button>
+                <div class="collapse @(managementActive ? "show" : "")" id="collapseManagement">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar"))
+                    {
+                        <a class="nav-link @(activeController == "Inquiries" && activeAction == "Index" ? "active" : "")" asp-controller="Inquiries" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M5.25 2.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5zM10.75 8a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>
+                            Inquiries
+                        </a>
+                    }
+                    else if (User.IsInRole("Parent"))
+                    {
+                        <a class="nav-link @(activeController == "Inquiries" && activeAction == "MyInquiries" ? "active" : "")" asp-controller="Inquiries" asp-action="MyInquiries">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M5.25 2.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5zM10.75 8a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zm0 1a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5z"/></svg>
+                            My Inquiries
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar"))
+                    {
+                        <a class="nav-link @(activeController == "Enrollments" ? "active" : "")" asp-controller="Enrollments" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h10A1.5 1.5 0 0 1 14 3.5V5a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3.5zM11 6h3.5a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-3v-6zm-3 0h3v6H8V6z"/></svg>
+                            Enrollments
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a class="nav-link @(activeController == "Accounts" ? "active" : "")" asp-controller="Accounts" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm6-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+                            Accounts
+                        </a>
+                        <a class="nav-link @(activeController == "Fees" ? "active" : "")" asp-controller="Fees" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2zm9.5 6a.5.5 0 0 1-.5.5H5a.5.5 0 0 1 0-1h6a.5.5 0 0 1 .5.5z"/><path d="M4 11h8v1H4z"/></svg>
+                            Fees
+                        </a>
+                    }
+                </div>
             }
 
-            @if (User.IsInRole("Admin") || User.IsInRole("Faculty"))
+            <!-- FINANCE -->
+            @{
+                bool financeVisible =
+                    (User.IsInRole("Admin") || User.IsInRole("Finance")) || // Tuition & Billing (Invoices)
+                    (User.IsInRole("Admin") || User.IsInRole("Finance")) || // Expenses
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance") || User.IsInRole("Faculty")) || // Reports
+                    (User.IsInRole("Parent")); // Tuition & Billing (ParentBilling)
+
+                var financeActive = financeVisible &&
+                    (activeController == "Invoices" || activeController == "Expenses" ||
+                     activeController == "Reports" || activeController == "ParentBilling");
+            }
+            @if (financeVisible)
             {
-                <a class="nav-link @(activeController == "Gradebook" ? "active" : "")" asp-controller="Gradebook" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a.5.5 0 0 1 .5-.5h11A.5.5 0 0 1 14 2v12a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 2 14V2zm1 12h10V3H3v11z"/><path d="M5 6h6v1H5zM5 8h6v1H5zM5 10h6v1H5z"/></svg>
-                    Gradebook
-                </a>
+                <button class="nav-parent @(financeActive ? "active-parent" : "")"
+                        data-bs-toggle="collapse" data-bs-target="#collapseFinance"
+                        aria-expanded="@financeActive.ToString().ToLower()" aria-controls="collapseFinance">
+                    <span>
+                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M11 15a4 4 0 1 1 8 0v2a6 6 0 1 1-12 0v-2zM5.5 10a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0zm9-1a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>
+                        @(User.IsInRole("Parent") ? "Billing" : "Finance")
+                    </span>
+                    <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+                </button>
+                <div class="collapse @(financeActive ? "show" : "")" id="collapseFinance">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Finance"))
+                    {
+                        <a class="nav-link @(activeController == "Invoices" ? "active" : "")" asp-controller="Invoices" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h8l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2zm9.5 1.5L10 5h1.5V3.5z"/></svg>
+                            Tuition & Billing
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Finance"))
+                    {
+                        <a class="nav-link @(activeController == "Expenses" ? "active" : "")" asp-controller="Expenses" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5V5a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3.5zm0 8A1.5 1.5 0 0 1 2.5 10h11a1.5 1.5 0 0 1 1.5 1.5v2a.5.5 0 0 1-.5.5h-12a.5.5 0 0 1-.5-.5v-2zm1 1h12V10H2.5v2.5zM4 7a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 7z"/></svg>
+                            Expenses
+                        </a>
+                    }
+                    @if (User.IsInRole("Parent"))
+                    {
+                        <a class="nav-link @(activeController == "ParentBilling" ? "active" : "")" asp-controller="ParentBilling" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a1 1 0 0 1 1-1h8l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2zm9.5 1.5L10 5h1.5V3.5z"/></svg>
+                            Tuition & Billing
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance") || User.IsInRole("Faculty"))
+                    {
+                        <a class="nav-link @(activeController == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5v2h13v-1a.5.5 0 0 1 1 0v2H2V3a.5.5 0 0 1 .5-.5zm13 7H9.5v5a.5.5 0 0 1-1 0v-5H1a1 1 0 0 1 0-2h14a1 1 0 0 1 0 2z"/></svg>
+                            Reports
+                        </a>
+                    }
+                </div>
             }
 
-            @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Finance") || User.IsInRole("Faculty"))
-            {
-                <a class="nav-link @(activeController == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5v2h13v-1a.5.5 0 0 1 1 0v2H2V3a.5.5 0 0 1 .5-.5zm13 7H9.5v5a.5.5 0 0 1-1 0v-5H1a1 1 0 0 1 0-2h14a1 1 0 0 1 0 2z"/></svg>
-                    Reports
-                </a>
+            <!-- COMMUNICATION -->
+            @{
+                bool communicationVisible =
+                    (User.IsInRole("Admin") || User.IsInRole("Faculty") || User.IsInRole("Parent") || User.IsInRole("Finance")) || // Messages
+                    (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Faculty") || User.IsInRole("Parent")); // Announcements
+
+                var communicationActive = communicationVisible &&
+                    (activeController == "Messages" || activeController == "Announcements");
             }
-            }  @* /!Parent : hide Management staff links from Parent *@
-
-            <div class="ec-section">Communication</div>
-
-            @if (User.IsInRole("Admin") || User.IsInRole("Faculty") || User.IsInRole("Parent") || User.IsInRole("Finance"))
+            @if (communicationVisible)
             {
-                <a class="nav-link @(activeController == "Messages" ? "active" : "")" asp-controller="Messages" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1.796 1.296A.75.75 0 0 1 2.5 1h11a.75.75 0 0 1 .75.75v8.5a.75.75 0 0 1-.75.75h-1.5a2.25 2.25 0 1 0 0 .5h1.5A2.25 2.25 0 0 1 14 12.25V2.5 1.75a.75.75 0 0 0-.75-.75H9.542a1.75 1.75 0 0 1-3.458 0H2.5a.75.75 0 0 0-.75.75v9.75a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5a1.25 1.25 0 0 1 0-2.5H1.5a.75.75 0 0 0 0-1.5V9.5a2.25 2.25 0 0 0-2.25-2.25H.75a.75.75 0 0 0 0 1.5h.5A.75.75 0 0 1 2 9.5V3.25a.75.75 0 0 1 .75-.75h.042a1.75 1.75 0 1 1 3.458 0v1.146A2.251 2.251 0 0 1 8.25 6.5h2.5a2.25 2.25 0 0 1 2.25 2.25v6a.75.75 0 0 1-.75.75h-1.5a2.25 2.25 0 1 0 0 .5h1.5a.75.75 0 0 1 .75-.75v-6a.75.75 0 0 0-.75-.75h-2.5a.75.75 0 0 0-.75.75v5.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 8.25 11h.5a1.25 1.25 0 0 1 0 2.5h-1.5a2.25 2.25 0 0 0 0 4.5h-1.5a.75.75 0 0 0 0 1.5v1.5A.75.75 0 0 1 6.25 12h1.5a.75.75 0 0 1 .75-.75v-.5a2.25 2.25 0 0 0-2.25-2.25h-1.5a.75.75 0 0 0 0 1.5v1.5A.75.75 0 0 1 4.25 10H5a2.25 2.25 0 0 0 2.25 2.25h4.5A2.25 2.25 0 0 0 12 9.75V3.5A2.25 2.25 0 0 0 9.75 1.25v-.5z"/></svg>
-                    Messages
-                </a>
-            }
-
-            @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Faculty") || User.IsInRole("Parent"))
-            {
-                <a class="nav-link @(activeController == "Announcements" ? "active" : "")" asp-controller="Announcements" asp-action="Index">
-                    <svg class="icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-1V2a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4v-2H4V4h8v2h-1v8h-1V6h5V4a2 2 0 0 1 2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2v-1H4a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2h1v7.5a2.5 2.5 0 0 0 2.5 2.5H5.5A2.5 2.5 0 0 1 3 12.5V4a2 2 0 0 1 2-2z"/></svg>
-                    Announcements
-                </a>
+                <button class="nav-parent @(communicationActive ? "active-parent" : "")"
+                        data-bs-toggle="collapse" data-bs-target="#collapseCommunication"
+                        aria-expanded="@communicationActive.ToString().ToLower()" aria-controls="collapseCommunication">
+                    <span>
+                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2.678 4.804a.5.5 0 0 1 .683-.183A3.498 3.498 0 0 1 8 3.5c1.295 0 2.426.703 3.02 1.75a.5.5 0 1 1-.866.5c-.501-.89-1.44-1.5-2.514-1.5-1.07 0-2.01.61-2.514 1.5a.5.5 0 0 1-.866-.5zM8 6a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/></svg>
+                        Communication
+                    </span>
+                    <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+                </button>
+                <div class="collapse @(communicationActive ? "show" : "")" id="collapseCommunication">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Faculty") || User.IsInRole("Parent") || User.IsInRole("Finance"))
+                    {
+                        <a class="nav-link @(activeController == "Messages" ? "active" : "")" asp-controller="Messages" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1.796 1.296A.75.75 0 0 1 2.5 1h11a.75.75 0 0 1 .75.75v8.5a.75.75 0 0 1-.75.75h-1.5a2.25 2.25 0 1 0 0 .5h1.5A2.25 2.25 0 0 1 14 12.25V2.5 1.75a.75.75 0 0 0-.75-.75H9.542a1.75 1.75 0 0 1-3.458 0H2.5a.75.75 0 0 0-.75.75v9.75a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5a1.25 1.25 0 0 1 0-2.5H1.5a.75.75 0 0 0 0-1.5V9.5a2.25 2.25 0 0 0-2.25-2.25H.75a.75.75 0 0 0 0 1.5h.5A.75.75 0 0 1 2 9.5V3.25a.75.75 0 0 1 .75-.75h.042a1.75 1.75 0 1 1 3.458 0v1.146A2.251 2.251 0 0 1 8.25 6.5h2.5a2.25 2.25 0 0 1 2.25 2.25v6a.75.75 0 0 1-.75.75h-1.5a2.25 2.25 0 1 0 0 .5h1.5a.75.75 0 0 1 .75-.75v-6a.75.75 0 0 0-.75-.75h-2.5a.75.75 0 0 0-.75.75v5.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 8.25 11h.5a1.25 1.25 0 0 1 0 2.5h-1.5a2.25 2.25 0 0 0 0 4.5h-1.5a.75.75 0 0 0 0 1.5v1.5A.75.75 0 0 1 6.25 12h1.5a.75.75 0 0 1 .75-.75v-.5a2.25 2.25 0 0 0-2.25-2.25h-1.5a.75.75 0 0 0 0 1.5v1.5A.75.75 0 0 1 4.25 10H5a2.25 2.25 0 0 0 2.25 2.25h4.5A2.25 2.25 0 0 0 12 9.75V3.5A2.5 2.5 0 0 0 9.75 1.25v-.5z"/></svg>
+                            Messages
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registrar") || User.IsInRole("Faculty") || User.IsInRole("Parent"))
+                    {
+                        <a class="nav-link @(activeController == "Announcements" ? "active" : "")" asp-controller="Announcements" asp-action="Index">
+                            <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-1V2a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4v-2H4V4h8v2h-1v8h-1V6h5V4a2 2 0 0 1 2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2v-1H4a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2h1v7.5a2.5 2.5 0 0 0 2.5 2.5H5.5A2.5 2.5 0 0 1 3 12.5V4a2 2 0 0 1 2-2z"/></svg>
+                            Announcements
+                        </a>
+                    }
+                </div>
             }
         </div>
 
@@ -230,12 +351,32 @@
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     var q = encodeURIComponent(search.value.trim());
-                    if (q) window.location.href = '/Students?search=' + q;
+                    if (q) window.location.href = '/Students?q=' + q;
                 }
             });
         }
+        // Sidebar collapse toggle
+        function toggleSidebarCollapse() {
+            var sb = document.getElementById('ecSidebar');
+            var bd = document.body;
+            sb.classList.toggle('collapsed');
+            bd.classList.toggle('sidebar-collapsed');
+            // Optionally persist in localStorage
+            localStorage.setItem('sidebarCollapsed', sb.classList.contains('collapsed'));
+        }
+        // Restore collapsed state on load
+        (function () {
+            var collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            var sb = document.getElementById('ecSidebar');
+            if (collapsed) {
+                sb.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
     </script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

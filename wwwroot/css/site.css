@@ -1,31 +1,120 @@
-html {
-  font-size: 14px;
+/* Global design tokens */
+:root {
+  --ec-paper: #f8fafc;
+  --ec-card: #ffffff;
+  --ec-line: #e2e8f0;
+  --ec-ink: #0f172a;
+  --ec-ink-dim: #64748b;
+  --ec-accent: #d97706;
+  --ec-accent-hover: #df7c1a;
+  --ec-radius-sm: 8px;
+  --ec-radius-md: 12px;
+  --ec-shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --ec-shadow-primary: 0 1px 2px rgba(217,119,6,.2);
+  --ec-transition: all .2s ease;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
+/* Base */
+html { font-size: 14px; }
+@media (min-width: 768px) { html { font-size: 16px; } }
 
 body {
-  margin-bottom: 60px;
+  margin: 0;
+  background: var(--ec-paper);
+  color: var(--ec-ink);
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
+/* Typography utilities */
+.ec-page-title { color: var(--ec-ink); font-weight: 700; letter-spacing: -0.02em; }
+.ec-card-title, .ec-section-title { color: #1e293b; font-weight: 600; }
+.ec-body, .form-control, .form-select, .form-label { color: #1e293b !important; }
+.ec-muted, .text-body-secondary { color: var(--ec-ink-dim) !important; }
+
+/* Buttons */
+.btn-primary {
+  background: var(--ec-accent);
+  border-color: var(--ec-accent);
+  color: #fff;
+  font-weight: 600;
+  border-radius: var(--ec-radius-sm);
+  box-shadow: var(--ec-shadow-primary);
+  transition: var(--ec-transition);
+}
+.btn-primary:hover {
+  background: var(--ec-accent-hover);
+  border-color: var(--ec-accent-hover);
+}
+
+/* Secondary / quick-action button */
+.ec-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: #fff;
+  border: 1px solid var(--ec-line);
+  color: #334155;
+  font-weight: 500;
+  font-size: .875rem;
+  border-radius: var(--ec-radius-sm);
+  padding: .625rem 1rem;
+  box-shadow: var(--ec-shadow-sm);
+  transition: var(--ec-transition);
+  text-decoration: none;
+}
+.ec-btn-secondary:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: var(--ec-ink);
+}
+
+/* Form controls baseline */
+input, select, textarea,
+.form-control, .form-select {
+  background: #fff !important;
+  color: var(--ec-ink) !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: var(--ec-radius-sm);
+  font-size: .875rem;
+  padding: .5rem .75rem;
+  transition: var(--ec-transition);
+}
+input:focus, select:focus, textarea:focus,
+.form-control:focus, .form-select:focus {
+  border-color: var(--ec-accent) !important;
+  box-shadow: 0 0 0 3px rgba(217,119,6,.15) !important;
+  outline: none;
+}
+
+/* Icon utility */
+.ec-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: .5rem;
+  vertical-align: middle;
+}
+.ec-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform .2s;
+}
+.ec-chevron[aria-expanded="true"] {
+  transform: rotate(90deg);
+}
+
+/* Focus visible for accessibility */
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--ec-accent);
+}
+
+/* Form floating placeholder tweaks */
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+  color: var(--ec-ink-dim);
   text-align: end;
 }
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
   text-align: start;
 }

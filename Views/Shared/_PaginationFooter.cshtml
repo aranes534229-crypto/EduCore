@@ -1,0 +1,73 @@
+@model PaginationFooterVM
+@{
+    // URL with a __PAGESIZE__ placeholder for the page-size selector (reset to page 1).
+    var sizeRoute = new Dictionary<string, object?>(Model.RouteValues)
+    {
+        ["page"] = 1,
+        ["pageSize"] = "__PAGESIZE__"
+    };
+    // Route values for a specific page (filters preserved).
+    object? Route(int p)
+    {
+        var rv = new Dictionary<string, object?>(Model.RouteValues) { ["page"] = p };
+        return rv;
+    }
+
+    int totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 0;
+    int current = Model.Page;
+    int start = Math.Max(1, current - 2);
+    int end = Math.Min(totalPages, current + 2);
+    bool hasPrev = current > 1;
+    bool hasNext = current < totalPages;
+}
+<nav class="footer-bar" aria-label="@Model.AriaLabel">
+    <div class="footer-left">
+        <div class="d-flex align-items-center gap-1">
+            <span class="small text-body-secondary">Show</span>
+            <select name="pageSize" class="form-select form-select-sm toolbar-select" style="width:auto;" onchange="window.location.href='@Url.Action(Model.Action, Model.Controller, sizeRoute)'.replace('__PAGESIZE__', this.value);">
+                @foreach (var sz in Model.PageSizeValues)
+                {
+                    <option value="@sz" selected="@(Model.PageSize == sz)">@sz</option>
+                }
+            </select>
+            <span class="small text-body-secondary">entries</span>
+        </div>
+        <div class="small text-body-secondary">
+            Showing @((Model.Page - 1) * Model.PageSize + 1) to @(Math.Min(Model.Page * Model.PageSize, Model.TotalCount)) of @Model.TotalCount results
+        </div>
+    </div>
+    <div class="footer-right">
+        <ul class="pagination pagination-sm mb-0 pagination-pill">
+            <li class="page-item @(!hasPrev ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(1))" aria-label="First" @(!hasPrev ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")><span aria-hidden="true">&laquo;&laquo;</span></a>
+            </li>
+            <li class="page-item @(!hasPrev ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(current - 1))" aria-label="Previous" @(!hasPrev ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")><span aria-hidden="true">&laquo;</span></a>
+            </li>
+
+            @if (start > 1)
+            {
+                <li class="page-item"><a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(1))">1</a></li>
+                if (start > 2) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+            }
+            @for (int p = start; p <= end; p++)
+            {
+                <li class="page-item @(p == current ? "active" : "")" aria-current="@(p == current ? "page" : null)">
+                    <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(p))">@p</a>
+                </li>
+            }
+            @if (end < totalPages)
+            {
+                if (end < totalPages - 1) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+                <li class="page-item"><a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(totalPages))">@totalPages</a></li>
+            }
+
+            <li class="page-item @(!hasNext ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(current + 1))" aria-label="Next" @(!hasNext ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")><span aria-hidden="true">&raquo;</span></a>
+            </li>
+            <li class="page-item @(!hasNext ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, Route(totalPages))" aria-label="Last" @(!hasNext ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")><span aria-hidden="true">&raquo;&raquo;</span></a>
+            </li>
+        </ul>
+    </div>
+</nav>
