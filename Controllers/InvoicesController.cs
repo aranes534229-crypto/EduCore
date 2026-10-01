@@ -44,33 +44,36 @@ public class InvoicesController : Controller
                 i.Student.Person!.LastName.ToLower().Contains(term));
         }
 
-        // Status filter — payment state is derived from the balance, translated to SQL
-        // via aggregates since InvoicePaymentStatus is not a stored column.
+        // Status filter — payment state is derived from the balance.
+        // Load to memory first for SQLite compatibility, then filter in-memory.
+        List<Invoice> invoices;
         if (status.HasValue)
         {
-            query = status.Value switch
+            // Load all matching invoices with relations, then filter in memory
+            invoices = await query.ToListAsync();
+            invoices = status.Value switch
             {
-                InvoicePaymentStatus.Unpaid => query.Where(i => i.Payments.Sum(p => p.Amount) == 0m),
-                InvoicePaymentStatus.PaidInFull => query.Where(i =>
-                    i.Lines.Sum(l => l.Amount) > 0m &&
-                    i.Payments.Sum(p => p.Amount) >= i.Lines.Sum(l => l.Amount)),
-                _ => query.Where(i =>
-                    i.Payments.Sum(p => p.Amount) > 0m &&
-                    i.Payments.Sum(p => p.Amount) < i.Lines.Sum(l => l.Amount)),
+                InvoicePaymentStatus.Unpaid => invoices.Where(i => i.Balance == i.Total).ToList(),
+                InvoicePaymentStatus.PaidInFull => invoices.Where(i => i.Balance == 0 && i.Total > 0).ToList(),
+                _ => invoices.Where(i => i.Balance > 0 && i.Balance < i.Total).ToList(),
             };
         }
+        else
+        {
+            invoices = await query.ToListAsync();
+        }
 
-        // School year filter
+        // School year filter (apply in memory if not already applied in query)
         if (schoolYearId.HasValue)
         {
-            query = query.Where(i => i.SchoolYearId == schoolYearId.Value);
+            invoices = invoices.Where(i => i.SchoolYearId == schoolYearId.Value).ToList();
         }
 
         // Order
-        query = query.OrderByDescending(i => i.Id);
+        invoices = invoices.OrderByDescending(i => i.Id).ToList();
 
         // Total count before paging
-        var totalCount = await query.CountAsync();
+        var totalCount = invoices.Count;
 
         // Clamp page
         var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
@@ -78,10 +81,10 @@ public class InvoicesController : Controller
         if (totalPages > 0 && page > totalPages) page = totalPages;
 
         // Paged items
-        var items = await query
+        var items = invoices
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToList();
 
         var vm = new InvoicesIndexVM
         {

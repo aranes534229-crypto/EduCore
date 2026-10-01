@@ -14,9 +14,20 @@ namespace EduCore.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var openInvoices = await _db.Invoices
-                .Where(i => i.Lines.Sum(l => l.Amount) > i.Payments.Sum(p => p.Amount))
-                .CountAsync();
+            int openInvoices = 0;
+            try
+            {
+                var invoices = await _db.Invoices
+                    .Include(i => i.Lines)
+                    .Include(i => i.Payments)
+                    .ToListAsync();
+
+                openInvoices = invoices.Count(i => i.Balance > 0);
+            }
+            catch (Exception)
+            {
+                openInvoices = 0;
+            }
 
             var vm = new AdminDashboardVM
             {

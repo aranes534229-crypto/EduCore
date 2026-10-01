@@ -3,6 +3,7 @@ using EduCore.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,9 +73,17 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     // ponytail: SQLite provider can't reuse SQL Server migrations; EnsureCreated builds
     // the schema from the model directly. Seed runs either way.
-    db.Database.EnsureCreated();
+    try
+    {
+        db.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Database EnsureCreated failed (may already exist), continuing...");
+    }
     await DbSeeder.SeedAsync(db, users, roles);
 }
 
