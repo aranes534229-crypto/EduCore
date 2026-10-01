@@ -110,20 +110,45 @@ public class InquiriesController : Controller
         return View(vm);
     }
 
-    /// <summary>Parent/Student: list of inquiries submitted by the logged-in user.</summary>
+    /// <summary>Parent/Student: paged list of inquiries submitted by the logged-in user,
+    /// newest first (Id desc — deterministic; DateCreated can tie within the same second).</summary>
     [Authorize(Roles = AppRoles.Parent)]
-    public async Task<IActionResult> MyInquiries()
+    public async Task<IActionResult> MyInquiries(int page = 1, int pageSize = 10)
     {
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
         var userId = _users.GetUserId(User);
-        var list = await _db.Inquiries
+        var query = _db.Inquiries
             .Include(i => i.GradeLevel)
             .Include(i => i.Assignee).ThenInclude(u => u!.Person)
             .Include(i => i.Thread)
                 .ThenInclude(n => n.Staff).ThenInclude(s => s!.Person)
             .Where(i => i.CreatedByUserId == userId)
-            .OrderByDescending(i => i.DateCreated)
+            .OrderByDescending(i => i.Id);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-        return View(list);
+
+        return View(new MyInquiriesVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        });
     }
 
     /// <summary>Parent/Student: view an inquiry they own, with the conversation thread.</summary>
@@ -266,6 +291,11 @@ public class InquiriesController : Controller
         var person = string.IsNullOrEmpty(email)
             ? null
             : await _db.Persons.FirstOrDefaultAsync(p => p.Email == email);
+        // Person ↔ Student is 1:1 (unique IX_Students_PersonId): if that Person already has a
+        // Student (sibling converted earlier, or the parent's own account Person), leave the new
+        // Student unlinked — guardian contact info is copied into the Guardian fields anyway.
+        var personHasStudent = person is not null &&
+            await _db.Students.AnyAsync(s => s.PersonId == person.Id);
         if (person is null)
         {
             person = new Person
@@ -278,16 +308,21 @@ public class InquiriesController : Controller
             };
             _db.Persons.Add(person);
         }
+        // Explicit transaction: converting touches several tables across multiple saves, so a
+        // failure partway through must roll back entirely instead of leaving orphaned rows.
+        await using var tx = await _db.Database.BeginTransactionAsync();
         await _db.SaveChangesAsync();
 
         var student = new Student
         {
             StudentNumber = await NextStudentNumberAsync(),
+            FirstName = first,
+            LastName = last,
             BirthDate = inquiry.BirthDate,
             GuardianName = inquiry.GuardianName,
             GuardianContact = inquiry.ContactPhone,
             GuardianEmail = inquiry.ContactEmail,
-            PersonId = person.Id
+            PersonId = personHasStudent ? null : person.Id
         };
         _db.Students.Add(student);
         await _db.SaveChangesAsync();
@@ -333,6 +368,8 @@ public class InquiriesController : Controller
             inquiry.ConvertedEnrollmentId = enrollment.Id;
             await _db.SaveChangesAsync();
         }
+
+        await tx.CommitAsync();
 
         TempData["Info"] = $"Approved — created Student #{student.StudentNumber}.";
         return RedirectToAction(nameof(Index));

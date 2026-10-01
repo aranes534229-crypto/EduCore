@@ -111,7 +111,14 @@
                     </div>
                 </div>
             </div>
-            <a class="btn btn-sm btn-outline-primary" asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@(Model.Id)">Open Attendance Sheet</a>
+            @if (Model.SectionId != null)
+            {
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Gradebook" asp-action="Attendance" asp-route-sectionId="@(Model.SectionId)">Open Attendance Sheet</a>
+            }
+            else
+            {
+                <p class="small text-body-secondary mb-0">No section assigned yet — attendance opens once the student is scheduled.</p>
+            }
         </div>
     </div>
 </div>

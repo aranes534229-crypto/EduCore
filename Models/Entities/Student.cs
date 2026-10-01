@@ -25,11 +25,17 @@ public class Student
     public int? SectionId { get; set; }
     public Section? Section { get; set; }
 
-    public string FullName => Person?.FullName ?? "";
+    /// <summary>Stored name — filled when the student is created without a Person link (e.g. an
+    /// inquiry converted for a sibling whose parent contact already owns a Student record).
+    /// For linked students the Person's name stays authoritative.</summary>
+    [MaxLength(100)]
+    public string FirstName { get; set; } = "";
+    [MaxLength(100)]
+    public string LastName { get; set; } = "";
+
+    public string FullName => Person?.FullName ?? $"{FirstName} {LastName}".Trim();
     public string Email => Person?.Email ?? "";
     public string Address => Person?.Address ?? "";
-    public string FirstName => Person?.FirstName ?? "";
-    public string LastName => Person?.LastName ?? "";
 
     public ICollection<Document> Documents { get; set; } = new List<Document>();
     public ICollection<Grade> Grades { get; set; } = new List<Grade>();

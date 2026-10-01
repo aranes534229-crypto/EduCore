@@ -185,6 +185,7 @@ public class FacultyPortalController : Controller
             Id = student.Id,
             StudentNumber = student.StudentNumber,
             FullName = student.FullName,
+            SectionId = student.SectionId,
             SectionName = student.Section?.Name ?? "",
             GradeLevelName = student.Section?.GradeLevel?.Name ?? "",
             GuardianName = student.GuardianName,

@@ -6,14 +6,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
 /// <summary>Tuition & Billing, parent self-serve: a parent sees the statements for their linked
 /// child(ren) and records payments (in full or in parts) against each balance. The staff-side
 /// invoice management stays in InvoicesController; this is only the portal view/pay surface.
-/// Scoping uses Person.UserId (a Parent login → their child via Person), the same mechanism
-/// MessagesController.MyStudentsAsync relies on.</summary>
+/// Scoping uses the same two-path rule as the Parent dashboard and Messages: Person.UserId
+/// (a Parent login → their child via Person), or a GuardianEmail match against the login.</summary>
 [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Parent}")]
 public class ParentBillingController : Controller
 {
@@ -26,7 +27,7 @@ public class ParentBillingController : Controller
         _users = users;
     }
 
-    private async Task<List<int>> GetMyStudentIdsAsync(string meId, string? meEmail)
+    private async Task<List<int>> GetMyStudentIdsAsync(string? meId, string? meEmail)
     {
         return await _db.Students
             .Include(s => s.Person)
@@ -36,21 +37,47 @@ public class ParentBillingController : Controller
             .ToListAsync();
     }
 
-    public async Task<IActionResult> Index()
+    /// <summary>Paged statements for the logged-in parent's child(ren), newest first
+    /// (Id desc — deterministic; IssuedDate can tie within the same second).</summary>
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
+        // Clamp pageSize to allowed values
+        var allowedPageSizes = new[] { 5, 10, 25, 50 };
+        if (!allowedPageSizes.Contains(pageSize)) pageSize = 10;
+
         var meId = _users.GetUserId(User);
         var me = await _users.GetUserAsync(User);
         var meEmail = me?.Email?.ToLower();
         var studentIds = await GetMyStudentIdsAsync(meId, meEmail);
-        var list = await _db.Invoices
+        var query = _db.Invoices
             .Include(i => i.Student).ThenInclude(s => s.Person)
             .Include(i => i.SchoolYear)
             .Include(i => i.Lines)
             .Include(i => i.Payments)
             .Where(i => studentIds.Contains(i.StudentId))
-            .OrderByDescending(i => i.IssuedDate)
+            .OrderByDescending(i => i.Id);
+
+        // Total count before paging
+        var totalCount = await query.CountAsync();
+
+        // Clamp page
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
+        if (page < 1) page = 1;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        // Paged items
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-        return View(list);
+
+        return View(new ParentBillingIndexVM
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        });
     }
 
     public async Task<IActionResult> Details(int id)

@@ -7,6 +7,7 @@ public class FacultyStudentVM
     public int Id { get; set; }
     public string StudentNumber { get; set; } = "";
     public string FullName { get; set; } = "";
+    public int? SectionId { get; set; }
     public string SectionName { get; set; } = "";
     public string GradeLevelName { get; set; } = "";
     public string GuardianName { get; set; } = "";

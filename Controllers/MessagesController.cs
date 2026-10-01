@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using EduCore.Services;
 using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
@@ -13,18 +14,20 @@ namespace EduCore.Controllers;
 /// <summary>Module 7 — Parent/Student CRM + staff messaging. Recipient rules:
 /// Admin → Admin/Registrar/Faculty/Finance; Finance → Finance/Admin/Registrar;
 /// Registrar → Registrar/Finance/Parent — all plain direct threads (no student
-/// attached). Faculty talks to the parent of a student in their advised sections;
-/// Parent to their child's adviser — both student-scoped threads.</summary>
+/// attached). Faculty talks to the parent of a student in their advised or taught
+/// sections; Parent to their child's adviser — both student-scoped threads.</summary>
 [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent},{AppRoles.Finance},{AppRoles.Registrar}")]
 public class MessagesController : Controller
 {
     private readonly AppDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
+    private readonly FacultyScopeService _scope;
 
-    public MessagesController(AppDbContext db, UserManager<ApplicationUser> users)
+    public MessagesController(AppDbContext db, UserManager<ApplicationUser> users, FacultyScopeService scope)
     {
         _db = db;
         _users = users;
+        _scope = scope;
     }
 
     // Role-based recipient rules for staff senders. Faculty/Parent use the
@@ -49,8 +52,8 @@ public class MessagesController : Controller
     private bool IsStaff =>
         User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Finance) || User.IsInRole(AppRoles.Registrar);
 
-    // Students the current user may message about: Admin → all; Faculty → their advised sections;
-    // Parent → their linked child(ren).
+    // Students the current user may message about: Admin → all; Faculty → sections they advise
+    // or teach; Parent → children linked via Person or matched by guardian email.
     private async Task<List<Student>> MyStudentsAsync()
     {
         var meId = _users.GetUserId(User);
@@ -63,25 +66,23 @@ public class MessagesController : Controller
 
         if (User.IsInRole(AppRoles.Faculty))
         {
-            var facultyIds = await _db.Faculty
-                .Include(f => f.Person)
-                .Where(f => f.Person!.User!.Id == meId)
-                .Select(f => f.Id)
-                .ToListAsync();
-            return await _db.Students
-                .Include(s => s.Person)
-                .Where(s => s.Section != null && s.Section.AdviserId != null && facultyIds.Contains(s.Section.AdviserId.Value))
-                .OrderBy(s => s.Person!.LastName)
-                .ThenBy(s => s.Person!.FirstName)
-                .ToListAsync();
+            // Advised OR taught sections — same scope as the Faculty Portal, so a subject
+            // teacher can message the parents of students they teach too.
+            var faculty = await _scope.GetMyFacultyAsync(User);
+            if (faculty is null) return new List<Student>();
+            return await _scope.GetMyStudentsAsync(faculty.Id);
         }
 
-        // Parent
+        // Parent — same two-path rule as the Parent dashboard/billing: the child is mine if
+        // my account is linked via Person, or my account email matches the child's guardian
+        // email (e.g. converted sibling inquiries).
+        var meEmail = (await _users.GetUserAsync(User))?.Email?.ToLower();
         return await _db.Students
             .Include(s => s.Person)
-            .Where(s => s.Person!.User!.Id == meId)
-            .OrderBy(s => s.Person!.LastName)
-            .ThenBy(s => s.Person!.FirstName)
+            .Where(s => (s.Person != null && s.Person.User != null && s.Person.User.Id == meId)
+                     || (meEmail != null && s.GuardianEmail != null && s.GuardianEmail.ToLower() == meEmail))
+            .OrderBy(s => s.LastName)
+            .ThenBy(s => s.FirstName)
             .ToListAsync();
     }
 
@@ -115,6 +116,45 @@ public class MessagesController : Controller
             .Where(s => s.Id == sectionId)
             .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
             .FirstOrDefaultAsync();
+
+    // The parent account to deliver a message about a child to (Faculty → parent direction).
+    // Query-based (no lazy loading here, so navigation properties can't be trusted loaded):
+    // first the linked Person's login, then — same rule as the billing module — the account
+    // matching the child's GuardianEmail (covers converted inquiries where the Person isn't
+    // the one linked to the parent's login). Null when no parent account exists at all.
+    private async Task<string?> ParentUserIdAsync(int studentId)
+    {
+        var byPerson = await _db.Students
+            .Where(s => s.Id == studentId)
+            .Select(s => s.Person != null && s.Person.User != null ? s.Person.User.Id : null)
+            .FirstOrDefaultAsync();
+        if (byPerson != null) return byPerson;
+
+        var email = await _db.Students
+            .Where(s => s.Id == studentId)
+            .Select(s => s.GuardianEmail)
+            .FirstOrDefaultAsync();
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
+        var lower = email.Trim().ToLower();
+        return await _db.Users
+            .Where(u => u.Email != null && u.Email.ToLower() == lower)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    // The other user in an existing student-scoped thread (counterparty of my most recent
+    // post). Null when the thread is empty — callers fall back to direction-based routing.
+    private async Task<string?> ThreadOtherPartyAsync(int? studentId, string? meId)
+    {
+        if (studentId is null || string.IsNullOrEmpty(meId)) return null;
+        var last = await _db.Messages
+            .Where(m => m.StudentId == studentId && (m.SenderId == meId || m.RecipientId == meId))
+            .OrderByDescending(m => m.SentAt)
+            .ThenByDescending(m => m.Id)
+            .FirstOrDefaultAsync();
+        return last is null ? null : (last.SenderId == meId ? last.RecipientId : last.SenderId);
+    }
 
     public async Task<IActionResult> Index(string? q, string? direction, string? read, int page = 1, int pageSize = 10)
     {
@@ -260,7 +300,7 @@ public class MessagesController : Controller
             }
 
             if (User.IsInRole(AppRoles.Faculty))
-                toId = student.Person?.User?.Id; // the child's linked parent
+                toId = await ParentUserIdAsync(student.Id); // the child's parent account
             else // Parent → their child's adviser
                 toId = await AdviserUserIdAsync(student.SectionId);
             aboutId = student.Id;
@@ -268,7 +308,7 @@ public class MessagesController : Controller
 
         if (string.IsNullOrEmpty(toId))
         {
-            ModelState.AddModelError("", "No linked recipient for this student yet (no Parent login, or no adviser assigned).");
+            ModelState.AddModelError("", "No parent account linked to this student yet (no login, and no account matches the guardian email). The parent must register first.");
             return await ComposeViewAsync(studentId);
         }
 
@@ -349,16 +389,24 @@ public class MessagesController : Controller
 
         if (studentId is not null)
         {
-            // Student thread reply: resolve from my scoped set; recipient per direction
-            // (Faculty → child's parent, Parent → child's adviser).
+            // Student thread reply: resolve from my scoped set, then reply to the thread's
+            // other party so the back-and-forth reaches whoever opened the conversation.
             var allowed = await MyStudentsAsync();
             var student = allowed.FirstOrDefault(s => s.Id == studentId);
             if (student is null) return NotFound();
 
-            if (User.IsInRole(AppRoles.Faculty))
-                toId = student.Person?.User?.Id;
-            else
-                toId = await AdviserUserIdAsync(student.SectionId);
+            // Prefer the thread's other party so replies reach whoever actually opened the
+            // conversation (e.g. a subject teacher, not the adviser). Direction-based routing
+            // is only the fallback for a brand-new thread.
+            toId = await ThreadOtherPartyAsync(studentId, meId);
+
+            if (string.IsNullOrEmpty(toId))
+            {
+                if (User.IsInRole(AppRoles.Faculty))
+                    toId = await ParentUserIdAsync(student.Id);
+                else
+                    toId = await AdviserUserIdAsync(student.SectionId);
+            }
             aboutId = studentId;
         }
         else if (!string.IsNullOrEmpty(with) && with != meId)
@@ -376,7 +424,7 @@ public class MessagesController : Controller
 
         if (string.IsNullOrEmpty(toId))
         {
-            ModelState.AddModelError("", "No linked recipient for this student yet.");
+            ModelState.AddModelError("", "No parent account linked to this student yet (no login, and no account matches the guardian email).");
             return await Thread(studentId, with);
         }
 

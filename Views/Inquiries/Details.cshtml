@@ -101,7 +101,7 @@ else
 
         <div style="display:flex; gap:0.75rem; align-items:center; justify-content:flex-start; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--bs-border-color);">
             <!-- Approve button -->
-            <form asp-action="Convert" asp-route-id="@Model.Id" method="post">
+            <form asp-action="Convert" asp-route-id="@Model.Id" method="post" id="approveForm">
                 <button type="submit" class="btn btn-primary" id="btnApprove" style="padding:0.5rem 1.25rem; width:fit-content;">
                     <span class="btn-text">Approve enrollment</span>
                     <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>Processing...</span>
@@ -146,7 +146,7 @@ else
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Approve form loading state
-            const approveForm = document.querySelector('form[asp-action="Convert"]');
+            const approveForm = document.getElementById('approveForm');
             if (approveForm) {
                 approveForm.addEventListener('submit', function () {
                     const btn = document.getElementById('btnApprove');

@@ -99,6 +99,8 @@ public class StudentsController : Controller
 
         s.PersonId = person.Id;
         s.StudentNumber = await NextStudentNumberAsync();
+        s.FirstName = person.FirstName;
+        s.LastName = person.LastName;
 
         _db.Students.Add(s);
         await _db.SaveChangesAsync();
@@ -144,6 +146,13 @@ public class StudentsController : Controller
             existing.Person.Phone = person.Phone;
             existing.Person.Address = person.Address;
             existing.Person.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // No Person link (e.g. converted sibling inquiry) — the name fields land on the
+            // Student's own columns so the record isn't stuck nameless.
+            existing.FirstName = person.FirstName;
+            existing.LastName = person.LastName;
         }
 
         await _db.SaveChangesAsync();

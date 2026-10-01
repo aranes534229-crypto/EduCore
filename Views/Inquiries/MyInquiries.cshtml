@@ -1,5 +1,6 @@
 @using EduCore.Models.Entities
-@model IEnumerable<Inquiry>
+@using EduCore.ViewModels
+@model MyInquiriesVM
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "My inquiries";
@@ -9,7 +10,7 @@
     <a asp-action="Submit" class="btn btn-primary">New inquiry</a>
 </div>
 
-@if (!Model.Any())
+@if (!Model.Items.Any())
 {
     <p class="text-body-secondary">You haven't submitted any inquiries yet.</p>
 }
@@ -20,7 +21,7 @@ else
             <tr><th>#</th><th>Child</th><th>Grade</th><th>Status</th><th>Date</th><th></th></tr>
         </thead>
         <tbody>
-        @foreach (var i in Model)
+        @foreach (var i in Model.Items)
         {
             <tr>
                 <td class="cell-id">@i.InquiryNumber</td>
@@ -35,4 +36,13 @@ else
         }
         </tbody>
     </table>
+
+    <partial name="_PaginationFooter" model='new PaginationFooterVM
+    {
+        Action = "MyInquiries",
+        Page = Model.Page,
+        PageSize = Model.PageSize,
+        TotalCount = Model.TotalCount,
+        AriaLabel = "My inquiries pagination"
+    }' />
 }
