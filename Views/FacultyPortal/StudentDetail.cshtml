@@ -42,7 +42,7 @@
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>@d.FileName</span>
-                            <a class="btn btn-sm btn-outline-secondary" href="@Url.Content(d.Path)" target="_blank">Open</a>
+                            <a class="btn btn-sm btn-outline-secondary" href="@Url.Content($"~/{d.Path}")" target="_blank" rel="noopener">Open</a>
                         </li>
                     }
                 </ul>
