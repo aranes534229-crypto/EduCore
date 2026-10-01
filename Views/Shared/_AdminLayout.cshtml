@@ -30,12 +30,14 @@
     <nav class="ec-sidebar" id="ecSidebar" role="navigation" aria-label="Admin navigation">
         <!-- Brand -->
         <div class="ec-brand">
-            <span class="ec-logo-wrap" aria-hidden="true">
-                <img src="~/images/logo-educore.jpg" alt="EduCore" class="ec-logo" />
-            </span>
-            <span class="ec-brand-text">Edu<span class="ec-dot">Core</span></span>
-            <button class="btn btn-link p-0 ms-auto" type="button" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar" title="Collapse sidebar">
-                <svg class="bi bi-chevron-left" width="1.25rem" height="1.25rem" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
+            <div class="ec-brand-main">
+                <span class="ec-logo-wrap" aria-hidden="true">
+                    <img src="~/images/logo-educore.jpg" alt="EduCore" class="ec-logo" />
+                </span>
+                <span class="ec-brand-text">Edu<span class="ec-dot">Core</span></span>
+            </div>
+            <button class="ec-collapse-btn" type="button" onclick="toggleSidebarCollapse()" aria-label="Collapse sidebar" title="Collapse sidebar">
+                <svg class="ec-collapse-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg>
             </button>
         </div>
 
@@ -58,7 +60,7 @@
             }
             <a class="nav-link @(activeController == dashController && activeAction == dashAction ? "active" : "")" asp-controller="@dashController" asp-action="@dashAction">
                 <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M8 .5l6 5.5v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3H8v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6L8 .5z"/></svg>
-                Dashboard
+                <span>Dashboard</span>
             </a>
 
             <!-- ACADEMICS -->
@@ -77,13 +79,11 @@
             }
             @if (academicsVisible)
             {
-                <button class="nav-parent @(academicsActive ? "active-parent" : "")"
+                <button class="nav-parent"
                         data-bs-toggle="collapse" data-bs-target="#collapseAcademics"
                         aria-expanded="@academicsActive.ToString().ToLower()" aria-controls="collapseAcademics">
-                    <span>
-                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm8.563.997C12.978 2.923 13.79 3.15 14.5 3.5v9.5c-.71-.35-1.522-.58-2.437-.679-1.14-.12-2.36.218-3.288.811V3.825z"/></svg>
-                        Academics
-                    </span>
+                    <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm8.563.997C12.978 2.923 13.79 3.15 14.5 3.5v9.5c-.71-.35-1.522-.58-2.437-.679-1.14-.12-2.36.218-3.288.811V3.825z"/></svg>
+                    <span>Academics</span>
                     <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
                 </button>
                 <div class="collapse @(academicsActive ? "show" : "")" id="collapseAcademics">
@@ -143,13 +143,11 @@
             }
             @if (managementVisible)
             {
-                <button class="nav-parent @(managementActive ? "active-parent" : "")"
+                <button class="nav-parent"
                         data-bs-toggle="collapse" data-bs-target="#collapseManagement"
                         aria-expanded="@managementActive.ToString().ToLower()" aria-controls="collapseManagement">
-                    <span>
-                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14H5v1.5A1.5 1.5 0 0 0 6.5 17h3a1.5 1.5 0 0 0 1.5-1.5V14h3.5A1.5 1.5 0 0 0 16 12.5v-8A1.5 1.5 0 0 0 14.5 3H11V2.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5z"/></svg>
-                        Management
-                    </span>
+                    <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14H5v1.5A1.5 1.5 0 0 0 6.5 17h3a1.5 1.5 0 0 0 1.5-1.5V14h3.5A1.5 1.5 0 0 0 16 12.5v-8A1.5 1.5 0 0 0 14.5 3H11V2.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5z"/></svg>
+                    <span>Management</span>
                     <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
                 </button>
                 <div class="collapse @(managementActive ? "show" : "")" id="collapseManagement">
@@ -202,13 +200,11 @@
             }
             @if (financeVisible)
             {
-                <button class="nav-parent @(financeActive ? "active-parent" : "")"
+                <button class="nav-parent"
                         data-bs-toggle="collapse" data-bs-target="#collapseFinance"
                         aria-expanded="@financeActive.ToString().ToLower()" aria-controls="collapseFinance">
-                    <span>
-                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M11 15a4 4 0 1 1 8 0v2a6 6 0 1 1-12 0v-2zM5.5 10a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0zm9-1a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>
-                        @(User.IsInRole("Parent") ? "Billing" : "Finance")
-                    </span>
+                    <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M11 15a4 4 0 1 1 8 0v2a6 6 0 1 1-12 0v-2zM5.5 10a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0zm9-1a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z"/></svg>
+                    <span>@(User.IsInRole("Parent") ? "Billing" : "Finance")</span>
                     <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
                 </button>
                 <div class="collapse @(financeActive ? "show" : "")" id="collapseFinance">
@@ -254,13 +250,11 @@
             }
             @if (communicationVisible)
             {
-                <button class="nav-parent @(communicationActive ? "active-parent" : "")"
+                <button class="nav-parent"
                         data-bs-toggle="collapse" data-bs-target="#collapseCommunication"
                         aria-expanded="@communicationActive.ToString().ToLower()" aria-controls="collapseCommunication">
-                    <span>
-                        <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2.678 4.804a.5.5 0 0 1 .683-.183A3.498 3.498 0 0 1 8 3.5c1.295 0 2.426.703 3.02 1.75a.5.5 0 1 1-.866.5c-.501-.89-1.44-1.5-2.514-1.5-1.07 0-2.01.61-2.514 1.5a.5.5 0 0 1-.866-.5zM8 6a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/></svg>
-                        Communication
-                    </span>
+                    <svg class="ec-icon" fill="currentColor" viewBox="0 0 16 16"><path d="M2.678 4.804a.5.5 0 0 1 .683-.183A3.498 3.498 0 0 1 8 3.5c1.295 0 2.426.703 3.02 1.75a.5.5 0 1 1-.866.5c-.501-.89-1.44-1.5-2.514-1.5-1.07 0-2.01.61-2.514 1.5a.5.5 0 0 1-.866-.5zM8 6a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/></svg>
+                    <span>Communication</span>
                     <svg class="ec-chevron" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
                 </button>
                 <div class="collapse @(communicationActive ? "show" : "")" id="collapseCommunication">
@@ -337,7 +331,7 @@
         // Toggle inline user menu
         function toggleUserMenu() {
             var menu = document.getElementById('ecUserMenu');
-            var chevron = document.querySelector('.ec-chevron');
+            var chevron = document.querySelector('.ec-user-toggle .ec-chevron');
             var btn = document.querySelector('.ec-user-toggle');
             var isOpen = menu.classList.contains('show');
             menu.classList.toggle('show', !isOpen);
@@ -359,10 +353,14 @@
         function toggleSidebarCollapse() {
             var sb = document.getElementById('ecSidebar');
             var bd = document.body;
-            sb.classList.toggle('collapsed');
-            bd.classList.toggle('sidebar-collapsed');
-            // Optionally persist in localStorage
-            localStorage.setItem('sidebarCollapsed', sb.classList.contains('collapsed'));
+            var btn = document.querySelector('.ec-collapse-btn');
+            var isCollapsed = sb.classList.toggle('collapsed');
+            bd.classList.toggle('sidebar-collapsed', isCollapsed);
+            if (btn) {
+                btn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                btn.setAttribute('title', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+            }
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
         }
         // Restore collapsed state on load
         (function () {
