@@ -81,7 +81,8 @@ public class ParentDashboardController : Controller
 
         // Aggregate stats
         var unreadMessages = await _db.Messages
-            .CountAsync(m => m.RecipientId == meId && studentIds.Contains(m.StudentId) && !m.Seen);
+            .CountAsync(m => m.RecipientId == meId && m.StudentId != null
+                && studentIds.Contains(m.StudentId.Value) && !m.Seen);
 
         var pendingInquiries = await _db.Inquiries
             .CountAsync(i => i.CreatedByUserId == meId && i.Status == InquiryStatus.New);
@@ -91,7 +92,8 @@ public class ParentDashboardController : Controller
 
         // Recent activity
         var recentMessages = await _db.Messages
-            .Where(m => (m.SenderId == meId || m.RecipientId == meId) && studentIds.Contains(m.StudentId))
+            .Where(m => (m.SenderId == meId || m.RecipientId == meId) && m.StudentId != null
+                && studentIds.Contains(m.StudentId.Value))
             .OrderByDescending(m => m.SentAt)
             .Take(5)
             .ToListAsync();

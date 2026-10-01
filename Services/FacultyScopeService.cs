@@ -99,7 +99,7 @@ public class FacultyScopeService
             ("grade", true) => baseQuery.OrderByDescending(st => st.Section!.GradeLevel!.Name),
             ("firstname", false) => baseQuery.OrderBy(st => st.Person!.FirstName),
             ("firstname", true) => baseQuery.OrderByDescending(st => st.Person!.FirstName),
-            _ => baseQuery.OrderBy(st => st.Person!.LastName).ThenBy(st => st.Person!.FirstName)
+            _ => baseQuery.OrderByDescending(st => st.Id)
         };
 
         var totalCount = await baseQuery.CountAsync();

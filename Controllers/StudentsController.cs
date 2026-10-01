@@ -182,13 +182,17 @@ public class StudentsController : Controller
         }
     }
 
-    // ponytail: count-based (a deleted student can reuse a number). Mirrors InquiriesController for
-    // consistency so walk-ins get the same admission-ID shape as online conversions.
+    // ponytail: max-based — deleted/truncated rows can't cause collisions (gaps are fine).
+    // Mirrors InquiriesController so walk-ins get the same admission-ID shape as online conversions.
     private async Task<string> NextStudentNumberAsync()
     {
         var prefix = $"{DateTime.Today.Year}-";
-        var count = await _db.Students.CountAsync(s => s.StudentNumber.StartsWith(prefix));
-        return $"{prefix}{count + 1:0000}";
+        var numbers = await _db.Students
+            .Where(s => s.StudentNumber != null && s.StudentNumber.StartsWith(prefix))
+            .Select(s => s.StudentNumber!)
+            .ToListAsync();
+        var max = numbers.Any() ? numbers.Select(n => int.TryParse(n[prefix.Length..], out var v) ? v : 0).Max() : 0;
+        return $"{prefix}{max + 1:0000}";
     }
 
     public async Task<IActionResult> Details(int id)

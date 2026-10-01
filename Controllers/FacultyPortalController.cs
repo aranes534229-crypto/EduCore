@@ -43,7 +43,8 @@ public class FacultyPortalController : Controller
         // Unread messages count
         var meId = _users.GetUserId(User);
         var unreadMessages = await _db.Messages
-            .CountAsync(m => m.RecipientId == meId && !m.Seen && students.Select(s => s.Id).Contains(m.StudentId));
+            .CountAsync(m => m.RecipientId == meId && !m.Seen && m.StudentId != null
+                && students.Select(s => s.Id).Contains(m.StudentId.Value));
 
         // Upcoming attendance dates (next 7 days) for my sections
         var today = DateTime.Today;

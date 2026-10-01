@@ -29,7 +29,7 @@ public class SectionsController : Controller
         // Base query — Subjects and Students are needed for the per-row counts
         var query = _db.Sections
             .Include(s => s.GradeLevel)
-            .Include(s => s.Adviser)
+            .Include(s => s.Adviser!).ThenInclude(a => a.Person)
             .Include(s => s.Subjects)
             .Include(s => s.Students)
             .AsQueryable();
@@ -191,8 +191,8 @@ public class SectionsController : Controller
         var section = await _db.Sections
             .Include(s => s.GradeLevel)
             .Include(s => s.SchoolYear)
-            .Include(s => s.Adviser)
-            .Include(s => s.Students)
+            .Include(s => s.Adviser!).ThenInclude(a => a.Person)
+            .Include(s => s.Students).ThenInclude(st => st.Person!)
             .Include(s => s.Subjects).ThenInclude(ss => ss.Subject)
             .Include(s => s.Subjects).ThenInclude(ss => ss.Faculty)
             .FirstOrDefaultAsync(s => s.Id == id);
@@ -320,7 +320,7 @@ public class SectionsController : Controller
         var section = await _db.Sections
             .Include(s => s.GradeLevel)
             .Include(s => s.SchoolYear)
-            .Include(s => s.Students)
+            .Include(s => s.Students).ThenInclude(st => st.Person)
             .FirstOrDefaultAsync(s => s.Id == id);
         if (section is null) return NotFound();
 
@@ -365,7 +365,7 @@ public class SectionsController : Controller
     private async Task<Section?> LoadSectionForManageAsync(int id) =>
         await _db.Sections
             .Include(s => s.Subjects).ThenInclude(ss => ss.Faculty)
-            .Include(s => s.Students)
+            .Include(s => s.Students).ThenInclude(st => st.Person)
             .FirstOrDefaultAsync(s => s.Id == id);
 
     private async Task PopulateEditChoicesAsync(Section section, int[]? submittedSubjectIds = null)

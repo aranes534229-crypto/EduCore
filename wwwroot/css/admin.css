@@ -275,8 +275,10 @@ body { margin: 0; background: var(--ec-paper); color: var(--ec-ink); }
 .form-control:focus { border-color: var(--ec-accent); box-shadow: 0 0 0 .18rem rgba(217,119,6,.15); }
 .form-label { font-size: .8rem; font-weight: 600; color: var(--ec-ink-dim); letter-spacing: .03em; }
 
-/* Global form baseline */
-input, select, textarea,
+/* Global form baseline — checkbox/radio excluded: Bootstrap renders them with
+   appearance:none and the checkmark as a background-image, which the background
+   shorthand below would wipe (box would never show a check). */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea,
 .form-control, .form-select {
   background: #fff !important;
   color: var(--ec-ink) !important;
@@ -286,7 +288,7 @@ input, select, textarea,
   padding: .5rem .75rem;
   transition: var(--ec-transition);
 }
-input:focus, select:focus, textarea:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus,
 .form-control:focus, .form-select:focus {
   border-color: var(--ec-accent) !important;
   box-shadow: 0 0 0 3px rgba(217,119,6,.15) !important;

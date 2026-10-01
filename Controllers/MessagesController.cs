@@ -10,9 +10,12 @@ using EduCore.ViewModels;
 
 namespace EduCore.Controllers;
 
-/// <summary>Module 7 — Parent/Student CRM. Messages are scoped by the child: Faculty talk to the
-/// parent of a student in their advised section; Parent talks to their own child's adviser.</summary>
-[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent},{AppRoles.Finance}")]
+/// <summary>Module 7 — Parent/Student CRM + staff messaging. Recipient rules:
+/// Admin → Admin/Registrar/Faculty/Finance; Finance → Finance/Admin/Registrar;
+/// Registrar → Registrar/Finance/Parent — all plain direct threads (no student
+/// attached). Faculty talks to the parent of a student in their advised sections;
+/// Parent to their child's adviser — both student-scoped threads.</summary>
+[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent},{AppRoles.Finance},{AppRoles.Registrar}")]
 public class MessagesController : Controller
 {
     private readonly AppDbContext _db;
@@ -23,6 +26,28 @@ public class MessagesController : Controller
         _db = db;
         _users = users;
     }
+
+    // Role-based recipient rules for staff senders. Faculty/Parent use the
+    // student-scoped flow instead (no role list).
+    private static readonly Dictionary<string, string[]> StaffRecipientRoles = new()
+    {
+        [AppRoles.Admin] = new[] { AppRoles.Admin, AppRoles.Registrar, AppRoles.Faculty, AppRoles.Finance },
+        [AppRoles.Finance] = new[] { AppRoles.Finance, AppRoles.Admin, AppRoles.Registrar },
+        [AppRoles.Registrar] = new[] { AppRoles.Registrar, AppRoles.Finance, AppRoles.Parent },
+    };
+
+    private static readonly string[] RolePriority =
+        { AppRoles.Admin, AppRoles.Registrar, AppRoles.Faculty, AppRoles.Finance, AppRoles.Parent };
+
+    private string MyRole()
+    {
+        foreach (var r in RolePriority)
+            if (User.IsInRole(r)) return r;
+        return "";
+    }
+
+    private bool IsStaff =>
+        User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.Finance) || User.IsInRole(AppRoles.Registrar);
 
     // Students the current user may message about: Admin → all; Faculty → their advised sections;
     // Parent → their linked child(ren).
@@ -60,6 +85,37 @@ public class MessagesController : Controller
             .ToListAsync();
     }
 
+    // Users the current staff user may message: anyone holding one of their allowed roles.
+    private async Task<List<ApplicationUser>> AllowedRecipientsAsync()
+    {
+        var roles = StaffRecipientRoles[MyRole()];
+        var ids = await _db.UserRoles
+            .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+            .Where(x => x.Name != null && roles.Contains(x.Name))
+            .Select(x => x.UserId)
+            .Distinct()
+            .ToListAsync();
+        return await _users.Users
+            .Include(u => u.Person)
+            .Where(u => ids.Contains(u.Id))
+            .OrderBy(u => u.Person!.LastName)
+            .ThenBy(u => u.Person!.FirstName)
+            .ToListAsync();
+    }
+
+    private async Task<bool> RecipientAllowedAsync(string[] roles, string recipientId) =>
+        await _db.UserRoles
+            .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+            .AnyAsync(x => x.UserId == recipientId && x.Name != null && roles.Contains(x.Name));
+
+    // The child's adviser's linked login (Parent → adviser direction). Select-only —
+    // EF translates the navigation joins; no Include needed.
+    private async Task<string?> AdviserUserIdAsync(int? sectionId) =>
+        await _db.Sections
+            .Where(s => s.Id == sectionId)
+            .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
+            .FirstOrDefaultAsync();
+
     public async Task<IActionResult> Index(string? q, string? direction, string? read, int page = 1, int pageSize = 10)
     {
         // Clamp pageSize to allowed values
@@ -70,8 +126,10 @@ public class MessagesController : Controller
         var students = await MyStudentsAsync();
         var studentIds = students.Select(s => s.Id).ToHashSet();
 
+        // Inbox: my direct threads (StudentId null) plus student-scoped threads I'm part of.
         var msgs = await _db.Messages
-            .Where(m => (m.SenderId == meId || m.RecipientId == meId) && studentIds.Contains(m.StudentId))
+            .Where(m => (m.SenderId == meId || m.RecipientId == meId)
+                && (m.StudentId == null || studentIds.Contains(m.StudentId.Value)))
             .OrderByDescending(m => m.SentAt)
             .ToListAsync();
 
@@ -98,7 +156,7 @@ public class MessagesController : Controller
                 .Select(s => s.Id)
                 .ToHashSet();
             msgs = msgs.Where(m =>
-                m.Body.ToLower().Contains(term) || matchingStudentIds.Contains(m.StudentId))
+                m.Body.ToLower().Contains(term) || (m.StudentId != null && matchingStudentIds.Contains(m.StudentId.Value)))
                 .ToList();
         }
 
@@ -137,52 +195,78 @@ public class MessagesController : Controller
             Names = nameById,
             Students = students.ToDictionary(s => s.Id),
             UnreadIds = receivedUnseen.Select(m => m.Id).ToHashSet(),
-            // Finance reads the CRM but does not compose.
-            CanCompose = !User.IsInRole(AppRoles.Finance) && students.Count > 0
+            // Every role may compose; Faculty/Parent need students in their care to send.
+            CanCompose = true
         };
         return View(vm);
     }
 
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent}")]
+    [HttpGet]
     public async Task<IActionResult> Create(int? studentId)
     {
+        if (IsStaff)
+        {
+            var recipients = await AllowedRecipientsAsync();
+            ViewBag.Recipients = new SelectList(recipients.Select(u => new
+            {
+                Id = u.Id,
+                Label = $"{(u.Person?.FullName ?? u.Email ?? "")} ({u.Email})"
+            }), "Id", "Label");
+            return View();
+        }
+
         var students = await MyStudentsAsync();
-        if (students.Count == 0) return RedirectToAction(nameof(Index));
         ViewBag.Students = new SelectList(students, "Id", "FullName", studentId);
         ViewBag.IsFaculty = User.IsInRole(AppRoles.Faculty);
         ViewBag.IsParent = User.IsInRole(AppRoles.Parent);
+        ViewBag.HasStudents = students.Count > 0;
         return View();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Faculty},{AppRoles.Parent}")]
-    public async Task<IActionResult> Create(int studentId, string body)
+    public async Task<IActionResult> Create(int? studentId, string? recipientId, string body)
     {
         body = body?.Trim() ?? "";
-
-        // Resolve the student from the caller's scoped set so a Faculty/Parent cannot
-        // compose a message about a student outside their care (arbitrary studentId).
-        var allowed = await MyStudentsAsync();
-        var student = allowed.FirstOrDefault(s => s.Id == studentId);
-        if (student is null)
+        if (string.IsNullOrEmpty(body))
         {
-            ModelState.AddModelError("", "Student not found or not in your care.");
+            ModelState.AddModelError("", "Message cannot be empty.");
             return await ComposeViewAsync(studentId);
         }
 
-        var meId = _users.GetUserId(User);
+        string? toId;
+        int? aboutId = null;
 
-        string? recipientId;
-        if (User.IsInRole(AppRoles.Faculty) || User.IsInRole(AppRoles.Admin))
-            recipientId = student.Person?.User?.Id; // the child's linked parent (or self for Admin)
-        else // Parent → their child's adviser
-            recipientId = await _db.Sections
-                .Where(s => s.Id == student.SectionId)
-                .Include(s => s.Adviser).ThenInclude(a => a!.Person)
-                .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
-                .FirstOrDefaultAsync();
+        if (IsStaff)
+        {
+            // Staff senders: plain direct thread (no student), recipient per role rules.
+            var roles = StaffRecipientRoles[MyRole()];
+            if (string.IsNullOrEmpty(recipientId) || !await RecipientAllowedAsync(roles, recipientId))
+            {
+                ModelState.AddModelError("", "Pick a valid recipient.");
+                return await ComposeViewAsync(studentId);
+            }
+            toId = recipientId;
+        }
+        else
+        {
+            // Faculty/Parent — student-scoped: resolve the student from the caller's scoped
+            // set so they cannot compose a message about a student outside their care.
+            var allowed = await MyStudentsAsync();
+            var student = allowed.FirstOrDefault(s => s.Id == studentId);
+            if (student is null)
+            {
+                ModelState.AddModelError("", "Student not found or not in your care.");
+                return await ComposeViewAsync(studentId);
+            }
 
-        if (string.IsNullOrEmpty(recipientId))
+            if (User.IsInRole(AppRoles.Faculty))
+                toId = student.Person?.User?.Id; // the child's linked parent
+            else // Parent → their child's adviser
+                toId = await AdviserUserIdAsync(student.SectionId);
+            aboutId = student.Id;
+        }
+
+        if (string.IsNullOrEmpty(toId))
         {
             ModelState.AddModelError("", "No linked recipient for this student yet (no Parent login, or no adviser assigned).");
             return await ComposeViewAsync(studentId);
@@ -190,9 +274,9 @@ public class MessagesController : Controller
 
         _db.Messages.Add(new Message
         {
-            SenderId = meId!,
-            RecipientId = recipientId!,
-            StudentId = studentId,
+            SenderId = _users.GetUserId(User)!,
+            RecipientId = toId,
+            StudentId = aboutId,
             Body = body,
             SentAt = DateTime.UtcNow,
             Seen = false
@@ -201,29 +285,50 @@ public class MessagesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Parent-only conversation view for one student: the messages to/from the other party
-    // (Faculty or Parent) grouped as a thread. Scope via MyStudentsAsync so a parent can
-    // only thread their own child.
+    // Conversation view for one thread: student-scoped (Faculty/Parent, plus staff
+    // participants viewing) or a plain staff thread (with = the other party's user id).
     [HttpGet]
-    [Authorize(Roles = AppRoles.Parent)]
-    public async Task<IActionResult> Thread(int studentId)
+    public async Task<IActionResult> Thread(int? studentId, string? with)
     {
         var meId = _users.GetUserId(User);
-        var students = await MyStudentsAsync();
-        var student = students.FirstOrDefault(s => s.Id == studentId);
-        if (student is null) return NotFound();
+        Student? student = null;
+        List<Message> msgs;
 
-        var msgs = await _db.Messages
-            .Where(m => m.StudentId == studentId
-                && (m.SenderId == meId || m.RecipientId == meId))
-            .OrderBy(m => m.SentAt)
-            .ToListAsync();
+        if (studentId is not null)
+        {
+            // Student thread — I must be in the student's scoped set or a thread participant.
+            var students = await MyStudentsAsync();
+            student = students.FirstOrDefault(s => s.Id == studentId);
+            var participant = student is not null || await _db.Messages
+                .AnyAsync(m => m.StudentId == studentId && (m.SenderId == meId || m.RecipientId == meId));
+            if (!participant) return NotFound();
+
+            msgs = await _db.Messages
+                .Where(m => m.StudentId == studentId
+                    && (m.SenderId == meId || m.RecipientId == meId))
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+        else if (!string.IsNullOrEmpty(with) && with != meId)
+        {
+            // Staff thread — messages between me and `with` with no student attached.
+            msgs = await _db.Messages
+                .Where(m => m.StudentId == null
+                    && (m.SenderId == meId || m.RecipientId == meId)
+                    && (m.SenderId == with || m.RecipientId == with))
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+        else return NotFound();
 
         ViewBag.Student = student;
         ViewBag.UserId = meId;
-        // Other party = the person I'm NOT; for a parent that's the child's adviser.
-        var otherId = msgs.FirstOrDefault(m => m.RecipientId == meId)?.SenderId
-                      ?? msgs.FirstOrDefault(m => m.SenderId == meId)?.RecipientId;
+        ViewBag.WithId = with;
+        // Other party: explicit for staff threads, otherwise derived from the thread itself.
+        var otherId = !string.IsNullOrEmpty(with)
+            ? with
+            : msgs.FirstOrDefault(m => m.RecipientId == meId)?.SenderId
+              ?? msgs.FirstOrDefault(m => m.SenderId == meId)?.RecipientId;
         if (otherId is not null)
         {
             var otherUser = await _users.Users.Include(u => u.Person).FirstOrDefaultAsync(u => u.Id == otherId);
@@ -234,55 +339,86 @@ public class MessagesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = AppRoles.Parent)]
-    public async Task<IActionResult> Thread(int studentId, string body)
+    public async Task<IActionResult> Thread(int? studentId, string? with, string body)
     {
         body = body?.Trim() ?? "";
         var meId = _users.GetUserId(User);
 
-        // Reuse the parent-scoped student check + adviser resolution from Create, but inline
-        // (Create POST is shared with Faculty/Admin and resolves the other direction).
-        var allowed = await MyStudentsAsync();
-        var student = allowed.FirstOrDefault(s => s.Id == studentId);
-        if (student is null) return NotFound();
+        string? toId;
+        int? aboutId = null;
 
-        var recipientId = await _db.Sections
-            .Where(s => s.Id == student.SectionId)
-            .Include(s => s.Adviser).ThenInclude(a => a!.Person)
-            .Select(s => s.Adviser == null ? null : s.Adviser.Person!.User!.Id)
-            .FirstOrDefaultAsync();
-        if (string.IsNullOrEmpty(recipientId))
+        if (studentId is not null)
+        {
+            // Student thread reply: resolve from my scoped set; recipient per direction
+            // (Faculty → child's parent, Parent → child's adviser).
+            var allowed = await MyStudentsAsync();
+            var student = allowed.FirstOrDefault(s => s.Id == studentId);
+            if (student is null) return NotFound();
+
+            if (User.IsInRole(AppRoles.Faculty))
+                toId = student.Person?.User?.Id;
+            else
+                toId = await AdviserUserIdAsync(student.SectionId);
+            aboutId = studentId;
+        }
+        else if (!string.IsNullOrEmpty(with) && with != meId)
+        {
+            // Staff thread reply — recipient must satisfy my role rules.
+            var roles = StaffRecipientRoles.TryGetValue(MyRole(), out var rr) ? rr : Array.Empty<string>();
+            if (!await RecipientAllowedAsync(roles, with))
+            {
+                ModelState.AddModelError("", "You cannot message this recipient.");
+                return await Thread(null, with);
+            }
+            toId = with;
+        }
+        else return NotFound();
+
+        if (string.IsNullOrEmpty(toId))
         {
             ModelState.AddModelError("", "No linked recipient for this student yet.");
-            return await Thread(studentId);
+            return await Thread(studentId, with);
         }
 
         if (string.IsNullOrEmpty(body))
         {
             ModelState.AddModelError("", "Message cannot be empty.");
-            return await Thread(studentId);
+            return await Thread(studentId, with);
         }
 
         _db.Messages.Add(new Message
         {
             SenderId = meId!,
-            RecipientId = recipientId!,
-            StudentId = studentId,
+            RecipientId = toId,
+            StudentId = aboutId,
             Body = body,
             SentAt = DateTime.UtcNow,
             Seen = false
         });
         await _db.SaveChangesAsync();
-        // Mark the recipient's copy unread (seen=false on the new row) — handled by Seen=false above.
-        return RedirectToAction(nameof(Thread), new { studentId });
+        return studentId is not null
+            ? RedirectToAction(nameof(Thread), new { studentId })
+            : RedirectToAction(nameof(Thread), new { with });
     }
 
     private async Task<IActionResult> ComposeViewAsync(int? studentId = null)
     {
+        if (IsStaff)
+        {
+            var recipients = await AllowedRecipientsAsync();
+            ViewBag.Recipients = new SelectList(recipients.Select(u => new
+            {
+                Id = u.Id,
+                Label = $"{(u.Person?.FullName ?? u.Email ?? "")} ({u.Email})"
+            }), "Id", "Label");
+            return View();
+        }
+
         var students = await MyStudentsAsync();
         ViewBag.Students = new SelectList(students, "Id", "FullName", studentId);
         ViewBag.IsFaculty = User.IsInRole(AppRoles.Faculty);
         ViewBag.IsParent = User.IsInRole(AppRoles.Parent);
+        ViewBag.HasStudents = students.Count > 0;
         return View();
     }
 }

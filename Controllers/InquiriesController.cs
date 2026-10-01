@@ -260,15 +260,24 @@ public class InquiriesController : Controller
         }
 
         var (first, last) = SplitName(inquiry.StudentName);
-        var person = new Person
+        var email = inquiry.ContactEmail?.Trim();
+        // Reuse an existing Person with the same email (e.g. a sibling inquiry with the same
+        // parent contact) — Persons.Email is unique, so inserting a duplicate would throw.
+        var person = string.IsNullOrEmpty(email)
+            ? null
+            : await _db.Persons.FirstOrDefaultAsync(p => p.Email == email);
+        if (person is null)
         {
-            FirstName = first,
-            LastName = last,
-            Email = inquiry.ContactEmail,
-            Phone = inquiry.ContactPhone,
-            Address = inquiry.Address
-        };
-        _db.Persons.Add(person);
+            person = new Person
+            {
+                FirstName = first,
+                LastName = last,
+                Email = email ?? "",
+                Phone = inquiry.ContactPhone,
+                Address = inquiry.Address
+            };
+            _db.Persons.Add(person);
+        }
         await _db.SaveChangesAsync();
 
         var student = new Student
@@ -365,8 +374,12 @@ public class InquiriesController : Controller
     // collision-proof forever.
     private async Task<string> NextStudentNumberAsync()
     {
-        var count = await _db.Students.CountAsync();
-        return $"{1001 + count:D4}";
+        var numbers = await _db.Students
+            .Where(s => s.StudentNumber != null)
+            .Select(s => s.StudentNumber!)
+            .ToListAsync();
+        var max = numbers.Any() ? numbers.Select(n => int.TryParse(n, out var v) ? v : 0).Max() : 1000;
+        return $"{max + 1:D4}";
     }
 
     // Inquiries start at 1001 and increment by 1. Count-based so deleted inquiries don't leave gaps

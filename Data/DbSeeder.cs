@@ -140,20 +140,48 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
 
-        // Module 7 — link students to the demo Parent login so the portal shows billing/messaging
-        // for every enrolled child, not just Juan. Re-runs on every start, so students created
-        // through the UI (or converted from inquiries) get picked up the next time the app boots.
+        // Module 7 — link the demo Parent login to their Person so the portal shows
+        // billing/messaging for their child. Student ↔ Person is one-to-one, so a parent
+        // account maps to exactly one student record; re-runs on every start.
         // Real deployment would link each student to their own guardian account instead.
         var parentUser = await users.FindByEmailAsync("parent@educore.local");
-        if (parentUser is not null)
+        if (parentUser is not null && parentUser.PersonId is null)
         {
-            var unlinked = await db.Students.Where(s => s.PersonId == parentUser.PersonId).ToListAsync();
-            if (unlinked.Count > 0)
+            var parentPerson = await db.Persons.FirstOrDefaultAsync(p => p.Email == parentUser.Email);
+            if (parentPerson is null)
             {
-                foreach (var s in unlinked) s.PersonId = parentUser.PersonId;
+                parentPerson = new Person { FirstName = "Demo", LastName = "Parent", Email = parentUser.Email ?? "" };
+                db.Persons.Add(parentPerson);
                 await db.SaveChangesAsync();
-                Console.WriteLine($"[SEED] Linked {unlinked.Count} student(s) to parent {parentUser.UserName}.");
             }
+            parentUser.PersonId = parentPerson.Id;
+            await users.UpdateAsync(parentUser);
+        }
+
+        // Self-heal duplicate StudentNumbers — count-based generators minted duplicates when
+        // rows were deleted or the table truncated. The higher Id keeps its number; earlier
+        // duplicates get the next free number (max + 1). Re-runs on every start.
+        var allNumbers = await db.Students
+            .Where(s => s.StudentNumber != null)
+            .Select(s => new { s.Id, Number = s.StudentNumber! })
+            .ToListAsync();
+        var dupIds = allNumbers
+            .GroupBy(s => s.Number)
+            .Where(g => g.Count() > 1)
+            .SelectMany(g => g.OrderBy(x => x.Id).Skip(1).Select(x => x.Id))
+            .ToList();
+        if (dupIds.Count > 0)
+        {
+            var max = allNumbers.Select(n => int.TryParse(n.Number, out var v) ? v : 0).ToList();
+            var next = (max.Count > 0 ? max.Max() : 1000) + 1;
+            var dupes = await db.Students.Where(s => dupIds.Contains(s.Id)).ToListAsync();
+            foreach (var s in dupes.OrderBy(s => s.Id))
+            {
+                Console.WriteLine($"[SEED] Renumbered duplicate student {s.Id}: {s.StudentNumber} -> {next:D4}");
+                s.StudentNumber = $"{next:D4}";
+                next++;
+            }
+            await db.SaveChangesAsync();
         }
 
         // Module 8 — one lead inquiry, assigned to the Registrar for follow-up.
@@ -484,23 +512,8 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
-        // ponytail: fixed admission IDs keyed by last name — keeps the demo student list readable
-        // across DB states (seeds + runtime-created Angelo). Forked into per-lead custom IDs later
-        // if demos ever carry real PII. This also frees the count-based generator to start fresh.
-        var demoNumbers = new (string Last, int Seq)[]
-        {
-            ("Dela Cruz", 1), ("Ramos", 2), ("Santos", 3), ("Ranes", 4)
-        };
-        foreach (var (last, seq) in demoNumbers)
-        {
-            var st = await db.Students.Include(s => s.Person).FirstOrDefaultAsync(s => s.Person!.LastName == last);
-            var want = $"{1000 + seq:D4}";
-            if (st is not null && st.StudentNumber != want)
-            {
-                st.StudentNumber = want;
-                await db.SaveChangesAsync();
-            }
-        }
+        // Numbering is owned by the max-based generators (StudentsController/InquiriesController)
+        // plus the dedupe pass above — no forced demo numbers here, they used to recreate duplicates.
 
         // Backfill: ensure every user with Faculty role has a Faculty record linked to their Person
         var facultyRole = await roles.FindByNameAsync(AppRoles.Faculty);

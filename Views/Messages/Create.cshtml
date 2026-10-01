@@ -3,21 +3,38 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "New Message";
+    var recipients = ViewBag.Recipients as SelectList;
+    var students = ViewBag.Students as SelectList;
+    var hasStudents = (bool?)ViewBag.HasStudents ?? true;
 }
 <h1 class="h3 mb-4">New Message</h1>
 
 <form asp-action="Create" method="post">
     <div class="ec-card p-4">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="col-md-6 col-12 mb-3">
-            <label class="form-label">Student</label>
-            <select name="studentId" asp-items="@(ViewBag.Students as SelectList)" class="form-select"></select>
-            <div class="form-text">
-                @if (ViewBag.IsFaculty) { <text>Sends to this child's linked parent account.</text> }
-                else if (ViewBag.IsParent) { <text>Sends to your child's adviser.</text> }
-                else { <text>Sends to this child's linked parent account.</text> }
+        @if (recipients != null)
+        {
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Recipient</label>
+                <select name="recipientId" asp-items="recipients" class="form-select" required></select>
+                <div class="form-text">Only the roles you are allowed to message are listed.</div>
             </div>
-        </div>
+        }
+        else if (!hasStudents)
+        {
+            <p class="text-body-secondary small mb-3">No students in your care yet — there is no one to message.</p>
+        }
+        else
+        {
+            <div class="col-md-6 col-12 mb-3">
+                <label class="form-label">Student</label>
+                <select name="studentId" asp-items="students" class="form-select"></select>
+                <div class="form-text">
+                    @if (ViewBag.IsFaculty != null && (bool)ViewBag.IsFaculty) { <text>Sends to this child's linked parent account.</text> }
+                    else { <text>Sends to your child's adviser.</text> }
+                </div>
+            </div>
+        }
         <div class="col-md-6 col-12">
             <label asp-for="Body" class="form-label">Message</label>
             <textarea name="body" class="form-control" rows="4" required></textarea>
