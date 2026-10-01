@@ -202,6 +202,13 @@ public class InquiriesController : Controller
     {
         var user = await _users.GetUserAsync(User);
 
+        // FIX: Validate user exists in database to avoid FK violation on CreatedByUserId
+        if (user is null)
+        {
+            TempData["Error"] = "Your session has expired. Please log in again.";
+            return RedirectToAction("Login", "Account");
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateChoicesAsync(inquiry.GradeLevelId);
@@ -209,8 +216,9 @@ public class InquiriesController : Controller
         }
 
         inquiry.Status = InquiryStatus.New;
-        inquiry.CreatedByUserId = _users.GetUserId(User);
-        inquiry.ContactEmail = user?.Email ?? inquiry.ContactEmail;
+        // FIX: Use verified user.Id instead of GetUserId(User) to ensure FK matches
+        inquiry.CreatedByUserId = user.Id;
+        inquiry.ContactEmail = user.Email ?? inquiry.ContactEmail;
         inquiry.InquiryNumber = await NextInquiryNumberAsync();
         _db.Inquiries.Add(inquiry);
         await _db.SaveChangesAsync();
@@ -286,28 +294,20 @@ public class InquiriesController : Controller
 
         var (first, last) = SplitName(inquiry.StudentName);
         var email = inquiry.ContactEmail?.Trim();
-        // Reuse an existing Person with the same email (e.g. a sibling inquiry with the same
-        // parent contact) — Persons.Email is unique, so inserting a duplicate would throw.
-        var person = string.IsNullOrEmpty(email)
-            ? null
-            : await _db.Persons.FirstOrDefaultAsync(p => p.Email == email);
-        // Person ↔ Student is 1:1 (unique IX_Students_PersonId): if that Person already has a
-        // Student (sibling converted earlier, or the parent's own account Person), leave the new
-        // Student unlinked — guardian contact info is copied into the Guardian fields anyway.
-        var personHasStudent = person is not null &&
-            await _db.Students.AnyAsync(s => s.PersonId == person.Id);
-        if (person is null)
+        // Always create a new Person for the CHILD (not the parent). The inquiry's ContactEmail
+        // is the parent's email — we keep it in GuardianEmail for parent-portal lookup, but the
+        // Student's own Person record gets the child's name. Email is left empty to avoid
+        // unique-index collision (parent already owns that email); GuardianEmail on Student
+        // preserves the parent contact for portal linkage.
+        var person = new Person
         {
-            person = new Person
-            {
-                FirstName = first,
-                LastName = last,
-                Email = email ?? "",
-                Phone = inquiry.ContactPhone,
-                Address = inquiry.Address
-            };
-            _db.Persons.Add(person);
-        }
+            FirstName = first,
+            LastName = last,
+            Email = "",                 // child's Person email left empty (unique index allows empty)
+            Phone = inquiry.ContactPhone,
+            Address = inquiry.Address
+        };
+        _db.Persons.Add(person);
         // Explicit transaction: converting touches several tables across multiple saves, so a
         // failure partway through must roll back entirely instead of leaving orphaned rows.
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -322,7 +322,7 @@ public class InquiriesController : Controller
             GuardianName = inquiry.GuardianName,
             GuardianContact = inquiry.ContactPhone,
             GuardianEmail = inquiry.ContactEmail,
-            PersonId = personHasStudent ? null : person.Id
+            PersonId = person.Id
         };
         _db.Students.Add(student);
         await _db.SaveChangesAsync();
