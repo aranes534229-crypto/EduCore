@@ -22,7 +22,10 @@
                     <div>@ss.Subject.FullName</div>
                     <div class="small text-body-secondary">@(ss.Faculty?.FullName ?? "—")</div>
                 </div>
-                <a asp-action="Grades" asp-route-sectionSubjectId="@ss.Id" class="btn btn-sm btn-primary">Enter grades</a>
+                @if (ViewBag.MyFacultyId == null || ss.FacultyId == (int?)ViewBag.MyFacultyId || s.AdviserId == (int?)ViewBag.MyFacultyId)
+                {
+                    <a asp-action="Grades" asp-route-sectionSubjectId="@ss.Id" class="btn btn-sm btn-primary">Enter grades</a>
+                }
             </li>
         }
         @if (!s.Subjects.Any())

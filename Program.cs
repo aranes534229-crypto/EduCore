@@ -7,12 +7,12 @@ using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ponytail: Dev prefers SQL Server (localdb), but if it's not reachable (no LocalDB
-// instance in the sandbox), fall back to a local SQLite file so `dotnet run` works
-// without SQL Server installed. Production already uses SQLite.
+// Detect SQL Server vs SQLite from connection string format
 var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-var useSqlite = !builder.Environment.IsDevelopment();
-if (builder.Environment.IsDevelopment())
+var useSqlite = cs?.Contains("DataSource=", StringComparison.OrdinalIgnoreCase) == true 
+             || cs?.Contains("Data Source=", StringComparison.OrdinalIgnoreCase) == true;
+
+if (builder.Environment.IsDevelopment() && !useSqlite)
 {
     try
     {
@@ -74,17 +74,24 @@ using (var scope = app.Services.CreateScope())
     var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    // ponytail: SQLite provider can't reuse SQL Server migrations; EnsureCreated builds
-    // the schema from the model directly. Seed runs either way.
+    
     try
     {
-        db.Database.EnsureCreated();
+        if (useSqlite)
+        {
+            db.Database.EnsureCreated();
+        }
+        else
+        {
+            db.Database.Migrate();
+        }
+        await DbSeeder.SeedAsync(db, users, roles);
+        logger.LogInformation("Database migration and seeding completed successfully");
     }
     catch (Exception ex)
     {
-        logger.LogWarning(ex, "Database EnsureCreated failed (may already exist), continuing...");
+        logger.LogError(ex, "Database migration/seeding failed — app will start but DB may be uninitialized");
     }
-    await DbSeeder.SeedAsync(db, users, roles);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -104,6 +111,47 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Temporary seed endpoint - REMOVE AFTER USE
+app.MapGet("/seed-db", async (HttpContext ctx) =>
+{
+    var token = ctx.Request.Query["token"].ToString();
+    if (token != "SEED_TOKEN_2024")
+    {
+        return Results.Unauthorized();
+    }
+
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        if (!app.Environment.IsDevelopment())
+        {
+            db.Database.Migrate();
+        }
+        else
+        {
+            db.Database.EnsureCreated();
+        }
+        
+        await DbSeeder.SeedAsync(db, users, roles);
+        
+        return Results.Ok(new { 
+            success = true, 
+            message = "Database migration and seeding completed successfully",
+            timestamp = DateTime.UtcNow
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Manual seed failed");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+}).AllowAnonymous();
 
 app.MapRazorPages();
 app.MapControllerRoute(

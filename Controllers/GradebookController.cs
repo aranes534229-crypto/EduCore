@@ -16,17 +16,36 @@ public class GradebookController : Controller
 {
     private readonly AppDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
+    private readonly ILogger<GradebookController> _logger;
 
-    public GradebookController(AppDbContext db, UserManager<ApplicationUser> users)
+    public GradebookController(AppDbContext db, UserManager<ApplicationUser> users, ILogger<GradebookController> logger)
     {
         _db = db;
         _users = users;
+        _logger = logger;
     }
 
-    private async Task<int?> MyIdAsync() =>
-        (await _db.Faculty
+    private async Task<int?> MyIdAsync()
+    {
+        var userId = _users.GetUserId(User);
+        var appUser = await _users.GetUserAsync(User);
+        var userEmail = appUser?.Email;
+
+        if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(userEmail)) return null;
+
+        var faculty = await _db.Faculty
             .Include(f => f.Person)
-            .FirstOrDefaultAsync(f => f.Person!.User!.Id == _users.GetUserId(User)))?.Id;
+            .FirstOrDefaultAsync(f => f.Person != null &&
+                ((f.Person.User != null && f.Person.User.Id == userId) ||
+                 (!string.IsNullOrEmpty(userEmail) && f.Person.Email != null && f.Person.Email.ToLower() == userEmail.ToLower())));
+
+        if (faculty is null && User.IsInRole(AppRoles.Faculty))
+            _logger.LogWarning(
+                "Faculty user '{UserName}' ({UserId}) has no matching Faculty record — check the AspNetUsers.PersonId → Persons.Id → Faculty.PersonId chain.",
+                userEmail ?? userId, userId);
+
+        return faculty?.Id;
+    }
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -42,6 +61,11 @@ public class GradebookController : Controller
             var me = await MyIdAsync();
             q = q.Where(s => me != null && (s.AdviserId == me ||
                 s.Subjects.Any(ss => ss.FacultyId == me)));
+            ViewBag.MyFacultyId = me;
+        }
+        else
+        {
+            ViewBag.MyFacultyId = null;
         }
 
         var sections = await q.OrderBy(s => s.GradeLevel.SortOrder).ThenBy(s => s.Name).ToListAsync();
@@ -171,13 +195,17 @@ public class GradebookController : Controller
             .FirstOrDefaultAsync(x => x.Id == id);
         if (ss is null) return null;
         if (User.IsInRole(AppRoles.Admin)) return ss;
-        return ss.FacultyId == await MyIdAsync() ? ss : null;
+        var me = await MyIdAsync();
+        if (me is null) return null;
+        // Assigned subject teacher OR the section's adviser (adviser has full access to the section's gradebook).
+        return (ss.FacultyId == me || ss.Section.AdviserId == me) ? ss : null;
     }
 
     private async Task<bool> AuthorizeSectionAsync(int sectionId)
     {
         if (User.IsInRole(AppRoles.Admin)) return true;
         var me = await MyIdAsync();
+        if (me is null) return false;
         var section = await _db.Sections
             .Include(s => s.Subjects)
             .FirstOrDefaultAsync(s => s.Id == sectionId);
